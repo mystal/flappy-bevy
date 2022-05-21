@@ -1,0 +1,64 @@
+[package]
+name = "flappy-bevy"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.60"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+phys-viz = ["heron/debug-2d"]
+
+[dependencies]
+# For in-game and debug UI.
+bevy_egui = { version = "0.14", default-features = false }
+# Generic debug UI to inspect entities and components.
+# TODO: Put behind a feature flag?
+bevy-inspector-egui = { version = "0.11", default-features = false, features = ["bevy_sprite", "bevy_text"] }
+# For playing sound neffects and music.
+bevy_kira_audio = { version = "0.9", default-features = false, features = ["wav"] }
+# For quick, simple random number generation.
+fastrand = "1"
+# 2D physics. Mostly used for collision detection.
+heron = { version = "3", features = ["2d"] }
+# For better app states.
+iyes_loopless = "0.5"
+
+# For saving window state.
+serde = "1"
+toml = "0.5"
+
+# Base engine dependency.
+[dependencies.bevy]
+version = "0.7"
+default-features = false
+features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_winit",
+    "x11",
+]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Show panics in the browser console: https://bevy-cheatbook.github.io/platforms/wasm/panic-console.html
+console_error_panic_hook = "0.1"
+
+# Enable only a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
+
+# When doing trunk builds, uncomment these lines to get smaller wasm binaries.
+# [profile.release]
+# opt-level = "s"
+
+# TODO: If/when trunk supports calling custom cargo profiles, we can use this instead of the above hack.
+# Release profile optimizing for smaller binary size. Primarily for wasm builds.
+[profile.release-small]
+inherits = "release"
+opt-level = "s"
