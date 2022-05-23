@@ -16,7 +16,8 @@ pub struct Assets {
 }
 
 pub fn load_assets(
-    _server: Res<AssetServer>,
-    mut _assets: ResMut<Assets>,
+    server: Res<AssetServer>,
+    mut assets: ResMut<Assets>,
 ) {
+    assets.font = server.load("fonts/Kenney Blocks.ttf");
 }

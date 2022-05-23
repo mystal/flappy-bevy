@@ -3,7 +3,10 @@ use bevy_egui::EguiContext;
 use heron::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{WINDOW_SIZE, AppState};
+use crate::{
+    WINDOW_SIZE, AppState,
+    assets::Assets,
+};
 
 const CAMERA_POSITION: (f32, f32) = (WINDOW_SIZE.0 / 2.0, WINDOW_SIZE.1 / 2.0);
 
@@ -32,6 +35,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_loopless_state(GameState::Ready)
+            .insert_resource(GameData::default())
             .add_enter_system(AppState::InGame, setup_game)
             .add_enter_system(GameState::Ready, reset_bird)
             .add_enter_system(GameState::Ready, reset_pipes)
@@ -61,6 +65,7 @@ enum GameState {
 #[derive(Default)]
 struct GameData {
     score: u16,
+    score_text: Option<Entity>,
 }
 
 #[derive(Default, Component)]
@@ -169,10 +174,10 @@ impl PipeSegmentBundle {
 
 fn setup_game(
     mut commands: Commands,
+    assets: Res<Assets>,
+    mut game_data: ResMut<GameData>,
 ) {
     eprintln!("Setting up game");
-
-    commands.insert_resource(GameData::default());
 
     let mut camera_bundle = OrthographicCameraBundle::new_2d();
     camera_bundle.transform.translation.x = CAMERA_POSITION.0;
@@ -219,6 +224,25 @@ fn setup_game(
             parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
         });
 
+    // Create score text.
+    let style = TextStyle {
+        font: assets.font.clone(),
+        font_size: 80.0,
+        color: Color::BLACK,
+    };
+    let alignment = TextAlignment {
+        horizontal: HorizontalAlign::Center,
+        ..default()
+    };
+    let score_text_id = commands
+        .spawn_bundle(Text2dBundle {
+            text: Text::with_section("0", style.clone(), alignment),
+            transform: Transform::from_translation(Vec3::new(WINDOW_SIZE.0 / 2.0, 600.0, 0.0)),
+            ..default()
+        })
+        .id();
+    game_data.score_text = Some(score_text_id);
+
     // Make sure we're in the Ready state.
     commands.insert_resource(NextState(GameState::Ready));
 }
@@ -227,6 +251,7 @@ fn reset_bird(
     app_state: Res<CurrentState<AppState>>,
     mut game_data: ResMut<GameData>,
     mut bird_q: Query<(&mut Bird, &mut Transform)>,
+    mut score_text_q: Query<&mut Text>,
 ) {
     if app_state.0 != AppState::InGame {
         return;
@@ -235,6 +260,11 @@ fn reset_bird(
     eprintln!("reset_bird");
 
     game_data.score = 0;
+    if let Some(entity) = game_data.score_text {
+        if let Ok(mut text) = score_text_q.get_mut(entity) {
+            text.sections[0].value = game_data.score.to_string();
+        }
+    }
 
     for (mut bird, mut transform) in bird_q.iter_mut() {
         bird.speed = 0.0;
@@ -361,6 +391,7 @@ fn check_bird_scored(
     mut game_data: ResMut<GameData>,
     bird_q: Query<(), With<Bird>>,
     pipe_score_q: Query<(), With<PipeScoreZone>>,
+    mut score_text_q: Query<&mut Text>,
 ) {
     let bird_entered_score_zone = |entity1, entity2| {
         bird_q.contains(entity1) && pipe_score_q.contains(entity2)
@@ -372,7 +403,11 @@ fn check_bird_scored(
             let scored = bird_entered_score_zone(entity1, entity2) || bird_entered_score_zone(entity2, entity1);
             if scored {
                 game_data.score += 1;
-                println!("Scored! {}", game_data.score);
+                if let Some(entity) = game_data.score_text {
+                    if let Ok(mut text) = score_text_q.get_mut(entity) {
+                        text.sections[0].value = game_data.score.to_string();
+                    }
+                }
             }
         }
     }

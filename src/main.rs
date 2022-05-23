@@ -59,7 +59,7 @@ fn main() {
         .add_plugin(heron::PhysicsPlugin::default())
 
         // App setup
-        .add_loopless_state(AppState::InGame)
+        .add_loopless_state(AppState::MainMenu)
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(debug::DebugPlugin)
         .add_plugin(menu::MenuPlugin)
