@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::render::camera::WindowOrigin;
 use bevy_egui::EguiContext;
 use heron::prelude::*;
 use iyes_loopless::prelude::*;
@@ -7,8 +8,6 @@ use crate::{
     WINDOW_SIZE, AppState,
     assets::Assets,
 };
-
-const CAMERA_POSITION: (f32, f32) = (WINDOW_SIZE.0 / 2.0, WINDOW_SIZE.1 / 2.0);
 
 // Bird constants
 const BIRD_RADIUS: f32 = 20.0;
@@ -180,8 +179,9 @@ fn setup_game(
     eprintln!("Setting up game");
 
     let mut camera_bundle = OrthographicCameraBundle::new_2d();
-    camera_bundle.transform.translation.x = CAMERA_POSITION.0;
-    camera_bundle.transform.translation.y = CAMERA_POSITION.1;
+    // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
+    // up and to the right.
+    camera_bundle.orthographic_projection.window_origin = WindowOrigin::BottomLeft;
     commands.spawn_bundle(camera_bundle);
 
     // Spawn Bird
@@ -458,8 +458,8 @@ fn camera_control(
     let mut camera_transform = camera_q.single_mut();
 
     if keys.just_pressed(KeyCode::Key0) {
-        camera_transform.translation.x = CAMERA_POSITION.0;
-        camera_transform.translation.y = CAMERA_POSITION.1;
+        camera_transform.translation.x = 0.0;
+        camera_transform.translation.y = 0.0;
     }
 
     let move_dir = {
