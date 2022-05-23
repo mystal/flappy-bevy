@@ -34,6 +34,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_loopless_state(GameState::Ready)
+            .add_event::<TapEvent>()
             .insert_resource(GameData::default())
             .add_enter_system(AppState::InGame, setup_game)
             .add_enter_system(GameState::Ready, reset_bird)
@@ -41,9 +42,9 @@ impl Plugin for GamePlugin {
             .add_enter_system(GameState::Playing, enter_playing)
             .add_exit_system(GameState::Playing, exit_playing)
             .add_enter_system(GameState::Lost, enter_lost)
-            .add_system(check_start_input.run_in_state(AppState::InGame).run_in_state(GameState::Ready))
-            .add_system(check_reset_input.run_in_state(AppState::InGame).run_in_state(GameState::Lost))
-            .add_system(bird_movement.run_in_state(AppState::InGame).label("bird_movement"))
+            .add_system(check_tap_input.run_in_state(AppState::InGame).label("check_tap_input"))
+            .add_system(check_state_transition.run_in_state(AppState::InGame).run_not_in_state(GameState::Playing).after("check_tap_input"))
+            .add_system(bird_movement.run_in_state(AppState::InGame).label("bird_movement").after("check_tap_input"))
             .add_system(pipe_movement.run_in_state(AppState::InGame).run_in_state(GameState::Playing).before("bird_movement"))
             .add_system(check_bird_scored.run_in_state(AppState::InGame).run_in_state(GameState::Playing).after("bird_movement"))
             .add_system(check_bird_crashed.run_in_state(AppState::InGame).run_in_state(GameState::Playing).after("bird_movement"));
@@ -60,6 +61,9 @@ enum GameState {
     Playing,
     Lost,
 }
+
+#[derive(Default)]
+struct TapEvent;
 
 #[derive(Default)]
 struct GameData {
@@ -309,48 +313,49 @@ fn enter_lost() {
     eprintln!("Enter Lost");
 }
 
-fn check_start_input(
+fn check_tap_input(
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
+    touches: Res<Touches>,
     mut egui_ctx: ResMut<EguiContext>,
-    mut commands: Commands,
+    mut tap_events: EventWriter<TapEvent>,
 ) {
-    let start_pressed = (!egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space)) ||
-        (!egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left));
-    if start_pressed {
-        commands.insert_resource(NextState(GameState::Playing));
+    let keyboard_input = !egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space);
+    let mouse_input = !egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left);
+    let touch_input = !egui_ctx.ctx_mut().wants_pointer_input() && touches.iter_just_pressed().count() > 0;
+    if keyboard_input || mouse_input || touch_input {
+        tap_events.send_default();
     }
 }
 
-fn check_reset_input(
-    keys: Res<Input<KeyCode>>,
-    buttons: Res<Input<MouseButton>>,
-    mut egui_ctx: ResMut<EguiContext>,
+fn check_state_transition(
+    game_state: Res<CurrentState<GameState>>,
+    mut tap_events: EventReader<TapEvent>,
     mut commands: Commands,
 ) {
-    let start_pressed = (!egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space)) ||
-        (!egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left));
-    if start_pressed {
-        commands.insert_resource(NextState(GameState::Ready));
+    // Making sure we drain the events.
+    if tap_events.iter().next().is_none() {
+        return;
+    }
+
+    match game_state.0 {
+        GameState::Ready => commands.insert_resource(NextState(GameState::Playing)),
+        GameState::Lost => commands.insert_resource(NextState(GameState::Ready)),
+        _ => {}
     }
 }
 
 fn bird_movement(
     game_state: Res<CurrentState<GameState>>,
-    keys: Res<Input<KeyCode>>,
-    buttons: Res<Input<MouseButton>>,
+    tap_events: EventReader<TapEvent>,
     time: Res<Time>,
     mut bird_q: Query<(&mut Bird, &mut Transform)>,
-    mut egui_ctx: ResMut<EguiContext>,
 ) {
     if game_state.0 == GameState::Ready {
         return;
     }
 
-    let jumped = game_state.0 == GameState::Playing &&
-        ((!egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space)) ||
-        (!egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left)));
-
+    let jumped = game_state.0 == GameState::Playing && !tap_events.is_empty();
     for (mut bird, mut transform) in bird_q.iter_mut() {
         // Update velocity.
         if jumped {

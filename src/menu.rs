@@ -15,11 +15,13 @@ impl Plugin for MenuPlugin {
         app
             .add_enter_system(AppState::MainMenu, setup_main_menu)
             .add_exit_system(AppState::MainMenu, despawn_main_menu)
+            // TODO: Temp hack to work around bevy_egui not supporting touches. Remove once it does!
+            .add_system(tap_to_start.run_in_state(AppState::MainMenu))
             .add_system(main_menu_ui.run_in_state(AppState::MainMenu));
     }
 }
 
-pub fn setup_main_menu(
+fn setup_main_menu(
     mut commands: Commands,
     assets: Res<Assets>,
 ) {
@@ -43,7 +45,7 @@ pub fn setup_main_menu(
         });
 }
 
-pub fn despawn_main_menu(
+fn despawn_main_menu(
     mut commands: Commands,
     query: Query<Entity, Or<(With<Camera>, With<Text>)>>,
 ) {
@@ -52,7 +54,18 @@ pub fn despawn_main_menu(
     }
 }
 
-pub fn main_menu_ui(
+fn tap_to_start(
+    touches: Res<Touches>,
+    mut commands: Commands,
+) {
+    // TODO: This isn't working and I don't know why!
+    let touch_input = touches.iter_just_pressed().count() > 0;
+    if touch_input {
+        commands.insert_resource(NextState(AppState::InGame));
+    }
+}
+
+fn main_menu_ui(
     mut commands: Commands,
     mut ctx: ResMut<EguiContext>,
     mut exit: EventWriter<AppExit>,
