@@ -1,7 +1,5 @@
 # TODO
 ## Gameplay
-* [ ] Detect collisions with pipes and ground
-* [ ] Count score when pipe passes bird
 * [ ] Tune physics
   * Comps: https://playcanv.as/p/2OlkUaxF/
 
@@ -16,6 +14,9 @@
 ## Gameplay
 * [x] Create bird
 * [x] Create scrolling pipes
+* [x] Detect collisions with pipes and ground
+* [x] Count score when pipe passes bird
+* [x] Add Ready and Lost states
 
 ## UX
 * [x] Load window state when starting app.

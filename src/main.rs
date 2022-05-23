@@ -30,7 +30,7 @@ fn main() {
     #[cfg(target_arch = "wasm32")]
     console_error_panic_hook::set_once();
 
-    // TOOD: Verify the file exists!
+    // Try to load window state.
     let window_state_filename = "window_state.toml";
     let saved_window_state: SavedWindowState = if std::path::Path::new(window_state_filename).is_file() {
         let window_toml_str = std::fs::read_to_string(window_state_filename).unwrap();
