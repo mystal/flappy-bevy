@@ -7,6 +7,8 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+# TODO: Remove once we have graphics.
+default = ["phys-viz"]
 phys-viz = ["heron/debug-2d"]
 
 [dependencies]
