@@ -9,12 +9,12 @@ const CAMERA_POSITION: (f32, f32) = (WINDOW_SIZE.0 / 2.0, WINDOW_SIZE.1 / 2.0);
 
 // Bird constants
 const BIRD_RADIUS: f32 = 20.0;
-const BIRD_GRAVITY: f32 = -1200.0;
+const BIRD_GRAVITY: f32 = -1300.0;
 const BIRD_MAX_FALL_SPEED: f32 = -800.0;
 const BIRD_JUMP_SPEED: f32 = 450.0;
 
 // Pipe constants
-const PIPE_SPEED: f32 = 200.0;
+const PIPE_SPEED: f32 = 160.0;
 const PIPE_START_X: f32 = 420.0;
 const PIPE_END_X: f32 = -60.0;
 const PIPE_GAP: f32 = 140.0;
