@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use benimator::AnimationPlugin;
 use bevy::prelude::*;
+use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -11,19 +13,32 @@ mod menu;
 
 const GAME_SIZE: (f32, f32) = (180.0, 320.0);
 const DEFAULT_SCALE: u8 = 2;
-const WINDOW_SIZE: (f32, f32) = (GAME_SIZE.0 * DEFAULT_SCALE as f32, GAME_SIZE.1 * DEFAULT_SCALE as f32);
 const ALLOW_EXIT: bool = cfg!(not(target_arch = "wasm32"));
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum AppState {
+    Loading,
     MainMenu,
     InGame,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SavedWindowState {
     position: Option<Vec2>,
+    #[serde(default)]
+    scale: u8,
 }
+
+impl Default for SavedWindowState {
+    fn default() -> Self {
+        Self {
+            position: None,
+            scale: DEFAULT_SCALE,
+        }
+    }
+}
+
+pub struct WindowScale(pub u8);
 
 fn main() {
     // When building for WASM, print panics to the browser console.
@@ -43,10 +58,11 @@ fn main() {
     app
         .insert_resource(WindowDescriptor {
             title: "Flappy Bevy".into(),
-            width: WINDOW_SIZE.0,
-            height: WINDOW_SIZE.1,
+            width: GAME_SIZE.0 * saved_window_state.scale as f32,
+            height: GAME_SIZE.1 * saved_window_state.scale as f32,
             resizable: false,
             position: saved_window_state.position,
+            mode: WindowMode::Windowed,
             ..default()
         })
         // .insert_resource(ClearColor(Color::hex("018893").unwrap()))
@@ -57,9 +73,11 @@ fn main() {
         .add_plugin(bevy_egui::EguiPlugin)
         .add_plugin(bevy_kira_audio::AudioPlugin)
         .add_plugin(heron::PhysicsPlugin::default())
+        .add_plugin(AnimationPlugin::default())
 
         // App setup
-        .add_loopless_state(AppState::MainMenu)
+        .insert_resource(WindowScale(saved_window_state.scale))
+        .add_loopless_state(AppState::Loading)
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(debug::DebugPlugin)
         .add_plugin(menu::MenuPlugin)

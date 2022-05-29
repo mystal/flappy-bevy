@@ -5,7 +5,7 @@ use iyes_loopless::prelude::*;
 
 use crate::{
     ALLOW_EXIT, AppState,
-    assets::Assets,
+    assets::GameAssets,
 };
 
 pub struct MenuPlugin;
@@ -23,7 +23,7 @@ impl Plugin for MenuPlugin {
 
 fn setup_main_menu(
     mut commands: Commands,
-    assets: Res<Assets>,
+    assets: Res<GameAssets>,
 ) {
     // 2D camera to view Title Text
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());

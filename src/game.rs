@@ -1,32 +1,36 @@
 use bevy::prelude::*;
-use bevy::render::camera::WindowOrigin;
+use bevy::{
+    render::camera::WindowOrigin,
+    sprite::Anchor,
+};
 use bevy_egui::EguiContext;
 use heron::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    WINDOW_SIZE, AppState,
-    assets::Assets,
+    GAME_SIZE, AppState, WindowScale,
+    assets::GameAssets,
 };
 
 // Bird constants
-const BIRD_RADIUS: f32 = 20.0;
-const BIRD_GRAVITY: f32 = -1300.0;
-const BIRD_MAX_FALL_SPEED: f32 = -800.0;
-const BIRD_JUMP_SPEED: f32 = 450.0;
+const BIRD_RADIUS: f32 = 7.0;
+const BIRD_OFFSET_X: f32 = 30.0;
+const BIRD_GRAVITY: f32 = -650.0;
+const BIRD_MAX_FALL_SPEED: f32 = -400.0;
+const BIRD_JUMP_SPEED: f32 = 230.0;
 
 // Pipe constants
-const PIPE_SPEED: f32 = 160.0;
-const PIPE_START_X: f32 = 420.0;
-const PIPE_END_X: f32 = -60.0;
-const PIPE_GAP: f32 = 140.0;
-const PIPE_WIDTH: f32 = 80.0;
-const PIPE_SEGMENT_HEIGHT: f32 = 600.0;
-const PIPE_SPACING: f32 = 240.0;
-const PIPE_INIT_X: f32 = 400.0;
+const PIPE_SPEED: f32 = 80.0;
+const PIPE_START_X: f32 = 210.0;
+const PIPE_END_X: f32 = -30.0;
+const PIPE_GAP: f32 = 70.0;
+const PIPE_WIDTH: f32 = 40.0;
+const PIPE_SEGMENT_HEIGHT: f32 = 300.0;
+const PIPE_SPACING: f32 = 120.0;
+const PIPE_INIT_X: f32 = 200.0;
 
 // Ground constants
-const GROUND_OFFSET: f32 = 40.0;
+const GROUND_OFFSET: f32 = (GAME_SIZE.1 - 256.0) / 2.0;
 
 pub struct GamePlugin;
 
@@ -74,25 +78,30 @@ struct GameData {
 #[derive(Default, Component)]
 struct Bird {
     speed: f32,
+    angle: f32,
 }
 
 #[derive(Bundle)]
 struct BirdBundle {
     bird: Bird,
     name: Name,
-    transform: Transform,
-    global_transform: GlobalTransform,
+    #[bundle]
+    sprite_sheet: SpriteSheetBundle,
     rigid_body: RigidBody,
     collision_shape: CollisionShape,
 }
 
 impl BirdBundle {
-    fn new(pos: Vec2) -> Self {
+    fn new(pos: Vec2, texture_atlas: Handle<TextureAtlas>) -> Self {
+        let sprite_sheet = SpriteSheetBundle {
+            texture_atlas,
+            transform: Transform::from_translation(pos.extend(5.0)),
+            ..default()
+        };
         Self {
             bird: Bird::default(),
             name: Name::new("Bird"),
-            transform: Transform::from_translation(pos.extend(0.0)),
-            global_transform: GlobalTransform::default(),
+            sprite_sheet,
             rigid_body: RigidBody::KinematicPositionBased,
             collision_shape: CollisionShape::Sphere {
                 radius: BIRD_RADIUS,
@@ -143,7 +152,7 @@ impl PipeScoreBundle {
             transform: Transform::from_translation(Vec3::new(horizontal_offset, 0.0, 0.0)),
             global_transform: GlobalTransform::default(),
             collision_shape: CollisionShape::Cuboid {
-                half_extends: Vec3::new(20.0, PIPE_GAP / 2.0, 0.0),
+                half_extends: Vec3::new(10.0, PIPE_GAP / 2.0, 0.0),
                 border_radius: None,
             },
         }
@@ -156,8 +165,8 @@ struct PipeSegment;
 #[derive(Bundle)]
 struct PipeSegmentBundle {
     segment: PipeSegment,
-    transform: Transform,
-    global_transform: GlobalTransform,
+    #[bundle]
+    sprite_bundle: SpriteBundle,
     collision_shape: CollisionShape,
 }
 
@@ -165,8 +174,15 @@ impl PipeSegmentBundle {
     fn new(vertical_offset: f32) -> Self {
         Self {
             segment: PipeSegment,
-            transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, 0.0)),
-            global_transform: GlobalTransform::default(),
+            sprite_bundle: SpriteBundle {
+                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, 4.0)),
+                sprite: Sprite {
+                    color: Color::YELLOW_GREEN,
+                    custom_size: Some(Vec2::new(PIPE_WIDTH, PIPE_SEGMENT_HEIGHT)),
+                    ..default()
+                },
+                ..default()
+            },
             collision_shape: CollisionShape::Cuboid {
                 half_extends: Vec3::new(PIPE_WIDTH / 2.0, PIPE_SEGMENT_HEIGHT / 2.0, 0.0),
                 border_radius: None,
@@ -177,8 +193,9 @@ impl PipeSegmentBundle {
 
 fn setup_game(
     mut commands: Commands,
-    assets: Res<Assets>,
+    assets: Res<GameAssets>,
     mut game_data: ResMut<GameData>,
+    window_scale: Res<WindowScale>,
 ) {
     eprintln!("Setting up game");
 
@@ -186,17 +203,34 @@ fn setup_game(
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
     // up and to the right.
     camera_bundle.orthographic_projection.window_origin = WindowOrigin::BottomLeft;
+    camera_bundle.orthographic_projection.scale = 1.0 / window_scale.0 as f32;
     commands.spawn_bundle(camera_bundle);
 
     // Spawn Bird
-    commands.spawn_bundle(BirdBundle::new(Vec2::new(60.0, WINDOW_SIZE.1 / 2.0)));
+    commands.spawn_bundle(BirdBundle::new(Vec2::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0), assets.bird_atlas.clone()))
+        .insert(assets.bird_anim.clone())
+        .insert(benimator::Play);
+
+    // Spawn background sprite.
+    let background_sprite = SpriteBundle {
+        // Positioned at the top of the camera view.
+        transform: Transform::from_translation(Vec3::new(GAME_SIZE.0 / 2.0, GAME_SIZE.1, 0.0)),
+        sprite: Sprite {
+            anchor: Anchor::TopCenter,
+            ..default()
+        },
+        texture: assets.background.clone(),
+        ..default()
+    };
+    commands.spawn_bundle(background_sprite)
+        .insert(Name::new("Background"));
 
     // Spawn ground sprite
     let ground_sprite = SpriteBundle {
-        transform: Transform::from_translation(Vec3::new(WINDOW_SIZE.0 / 2.0, GROUND_OFFSET, 10.0)),
+        transform: Transform::from_translation(Vec3::new(GAME_SIZE.0 / 2.0, GROUND_OFFSET, 10.0)),
         sprite: Sprite {
             color: Color::DARK_GREEN,
-            custom_size: Some(Vec2::new(WINDOW_SIZE.0, GROUND_OFFSET * 2.0)),
+            custom_size: Some(Vec2::new(GAME_SIZE.0, GROUND_OFFSET * 2.0)),
             ..default()
         },
         ..default()
@@ -205,10 +239,10 @@ fn setup_game(
         .insert(Name::new("Ground"));
 
     // Spawn pipes offscreen.
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X, WINDOW_SIZE.1 / 2.0)))
+    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X, GAME_SIZE.1 / 2.0)))
         .with_children(|parent| {
             // Score detection
-            parent.spawn_bundle(PipeScoreBundle::new(40.0));
+            parent.spawn_bundle(PipeScoreBundle::new(20.0));
 
             // Top pipe
             parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
@@ -216,10 +250,10 @@ fn setup_game(
             // Bottom pipe
             parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
         });
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X + PIPE_SPACING, WINDOW_SIZE.1 / 2.0)))
+    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X + PIPE_SPACING, GAME_SIZE.1 / 2.0)))
         .with_children(|parent| {
             // Score detection
-            parent.spawn_bundle(PipeScoreBundle::new(40.0));
+            parent.spawn_bundle(PipeScoreBundle::new(20.0));
 
             // Top pipe
             parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
@@ -231,8 +265,8 @@ fn setup_game(
     // Create score text.
     let style = TextStyle {
         font: assets.font.clone(),
-        font_size: 80.0,
-        color: Color::BLACK,
+        font_size: 30.0,
+        color: Color::WHITE,
     };
     let alignment = TextAlignment {
         horizontal: HorizontalAlign::Center,
@@ -241,9 +275,10 @@ fn setup_game(
     let score_text_id = commands
         .spawn_bundle(Text2dBundle {
             text: Text::with_section("0", style.clone(), alignment),
-            transform: Transform::from_translation(Vec3::new(WINDOW_SIZE.0 / 2.0, 600.0, 0.0)),
+            transform: Transform::from_translation(Vec3::new(GAME_SIZE.0 / 2.0, 300.0, 50.0)),
             ..default()
         })
+        .insert(Name::new("Score Text"))
         .id();
     game_data.score_text = Some(score_text_id);
 
@@ -252,9 +287,10 @@ fn setup_game(
 }
 
 fn reset_bird(
+    mut commands: Commands,
     app_state: Res<CurrentState<AppState>>,
     mut game_data: ResMut<GameData>,
-    mut bird_q: Query<(&mut Bird, &mut Transform)>,
+    mut bird_q: Query<(Entity, &mut Bird, &mut Transform)>,
     mut score_text_q: Query<&mut Text>,
 ) {
     if app_state.0 != AppState::InGame {
@@ -270,9 +306,12 @@ fn reset_bird(
         }
     }
 
-    for (mut bird, mut transform) in bird_q.iter_mut() {
+    for (entity, mut bird, mut transform) in bird_q.iter_mut() {
         bird.speed = 0.0;
-        transform.translation = Vec3::new(60.0, WINDOW_SIZE.1 / 2.0, 0.0);
+        bird.angle = 0.0;
+        transform.translation = Vec3::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0, 0.0);
+        transform.rotation = Quat::IDENTITY;
+        commands.entity(entity).insert(benimator::Play);
     }
 }
 
@@ -287,7 +326,7 @@ fn reset_pipes(
     eprintln!("reset_pipes");
 
     for (i, mut transform) in pipe_q.iter_mut().enumerate() {
-        transform.translation = Vec3::new(PIPE_INIT_X + (i as f32 * PIPE_SPACING), WINDOW_SIZE.1 / 2.0, 0.0);
+        transform.translation = Vec3::new(PIPE_INIT_X + (i as f32 * PIPE_SPACING), GAME_SIZE.1 / 2.0, 0.0);
     }
 }
 
@@ -302,10 +341,12 @@ fn enter_playing(
 }
 
 fn exit_playing(
-    mut bird_q: Query<&mut Bird>,
+    mut commands: Commands,
+    mut bird_q: Query<(Entity, &mut Bird)>,
 ) {
-    for mut bird in bird_q.iter_mut() {
+    for (entity, mut bird) in bird_q.iter_mut() {
         bird.speed = 0.0;
+        commands.entity(entity).remove::<benimator::Play>();
     }
 }
 
@@ -355,25 +396,39 @@ fn bird_movement(
         return;
     }
 
+    let dt = time.delta_seconds();
+
     let jumped = game_state.0 == GameState::Playing && !tap_events.is_empty();
     for (mut bird, mut transform) in bird_q.iter_mut() {
         // Update velocity.
         if jumped {
             bird.speed = BIRD_JUMP_SPEED;
         } else {
-            bird.speed += BIRD_GRAVITY * time.delta_seconds();
+            // Fall with gravity.
+            bird.speed += BIRD_GRAVITY * dt;
             bird.speed = bird.speed.max(BIRD_MAX_FALL_SPEED);
         }
 
         transform.translation.y += bird.speed * time.delta_seconds();
 
         // Zero out speed if hitting the top of the screen.
-        if transform.translation.y > WINDOW_SIZE.1 - BIRD_RADIUS {
+        if transform.translation.y > GAME_SIZE.1 - BIRD_RADIUS {
             bird.speed = 0.0;
         }
 
         // Clamp position.
-        transform.translation.y = transform.translation.y.clamp(GROUND_OFFSET * 2.0, WINDOW_SIZE.1 - BIRD_RADIUS);
+        transform.translation.y = transform.translation.y.clamp(GROUND_OFFSET * 2.0, GAME_SIZE.1 - BIRD_RADIUS);
+
+        // Set bird rotation based on speed.
+        if bird.speed > 0.0 {
+            // Rotate left.
+            bird.angle += 600.0 * dt;
+        } else if bird.speed < -110.0 {
+            // Rotate right.
+            bird.angle -= 480.0 * dt;
+        }
+        bird.angle = bird.angle.clamp(-90.0, 30.0);
+        transform.rotation = Quat::from_rotation_z(bird.angle.to_radians());
     }
 }
 
