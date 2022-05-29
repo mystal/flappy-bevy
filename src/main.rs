@@ -71,6 +71,10 @@ fn main() {
         // External plugins
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy_egui::EguiPlugin)
+        .insert_resource(bevy_egui::EguiSettings {
+            scale_factor: (saved_window_state.scale as f64) / (DEFAULT_SCALE as f64),
+            ..default()
+        })
         .add_plugin(bevy_kira_audio::AudioPlugin)
         .add_plugin(heron::PhysicsPlugin::default())
         .add_plugin(AnimationPlugin::default())
