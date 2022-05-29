@@ -32,6 +32,10 @@ const PIPE_INIT_X: f32 = 200.0;
 // Ground constants
 const GROUND_OFFSET: f32 = (GAME_SIZE.1 - 256.0) / 2.0;
 
+// Z values
+const BIRD_Z: f32 = 15.0;
+const PIPE_Z: f32 = 4.0;
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
@@ -95,7 +99,7 @@ impl BirdBundle {
     fn new(pos: Vec2, texture_atlas: Handle<TextureAtlas>) -> Self {
         let sprite_sheet = SpriteSheetBundle {
             texture_atlas,
-            transform: Transform::from_translation(pos.extend(5.0)),
+            transform: Transform::from_translation(pos.extend(BIRD_Z)),
             ..default()
         };
         Self {
@@ -175,7 +179,7 @@ impl PipeSegmentBundle {
         Self {
             segment: PipeSegment,
             sprite_bundle: SpriteBundle {
-                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, 4.0)),
+                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
                 sprite: Sprite {
                     color: Color::YELLOW_GREEN,
                     custom_size: Some(Vec2::new(PIPE_WIDTH, PIPE_SEGMENT_HEIGHT)),
@@ -309,7 +313,7 @@ fn reset_bird(
     for (entity, mut bird, mut transform) in bird_q.iter_mut() {
         bird.speed = 0.0;
         bird.angle = 0.0;
-        transform.translation = Vec3::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0, 0.0);
+        transform.translation = Vec3::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0, BIRD_Z);
         transform.rotation = Quat::IDENTITY;
         commands.entity(entity).insert(benimator::Play);
     }
