@@ -11,19 +11,12 @@ pub struct AssetsPlugin;
 
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
-        AssetLoader::new(LoadingState::Loading)
-            .continue_to_state(LoadingState::Done)
+        AssetLoader::new(AppState::Loading)
+            .continue_to_state(AppState::MainMenu)
             .with_collection::<GameAssets>()
             .build(app);
-        app.add_state(LoadingState::Loading)
-            .add_system_set(SystemSet::on_enter(LoadingState::Done).with_system(assets_loaded));
+        app.add_exit_system(AppState::Loading, assets_loaded);
     }
-}
-
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
-enum LoadingState {
-    Loading,
-    Done,
 }
 
 #[derive(AssetCollection)]
@@ -41,7 +34,6 @@ pub struct GameAssets {
 }
 
 fn assets_loaded(
-    mut commands: Commands,
     mut assets: ResMut<GameAssets>,
     mut animations: ResMut<Assets<SpriteSheetAnimation>>,
 ) {
@@ -50,7 +42,4 @@ fn assets_loaded(
     // Bird anim info asset.
     let bird_anim = SpriteSheetAnimation::from_range(0..=3, Duration::from_millis(150));
     assets.bird_anim = animations.add(bird_anim);
-
-    // Go to main menu!
-    commands.insert_resource(NextState(AppState::MainMenu));
 }

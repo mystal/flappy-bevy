@@ -301,6 +301,7 @@ checksum = "f2a78d8801db4a317b8a165ad0ceb2eba12250914799d1b6afa9c61e4da861a4"
 dependencies = [
  "bevy",
  "bevy_asset_loader_derive",
+ "iyes_loopless",
 ]
 
 [[package]]
