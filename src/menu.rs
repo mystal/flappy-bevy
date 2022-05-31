@@ -75,6 +75,8 @@ fn main_menu_ui(
     mut ctx: ResMut<EguiContext>,
     mut exit: EventWriter<AppExit>,
 ) {
+    use egui::{Color32, Rounding};
+
     let window = egui::Window::new("Main Menu")
         .title_bar(false)
         .auto_sized()
@@ -83,6 +85,23 @@ fn main_menu_ui(
     window.show(ctx.ctx_mut(), |ui| {
         ui.set_width(250.0);
         ui.vertical_centered_justified(|ui| {
+            let mut visuals = ui.visuals_mut();
+
+            visuals.widgets.inactive.rounding = Rounding::none();
+            visuals.widgets.inactive.bg_fill = Color32::from_rgb(142, 37, 29);
+            visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(249, 230, 207);
+            // visuals.widgets.inactive.bg_fill = Color32::from_rgb(237, 118, 20);
+            // visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(249, 230, 207);
+
+            visuals.widgets.hovered.rounding = Rounding::none();
+            visuals.widgets.hovered.bg_fill = Color32::from_rgb(237, 118, 20);
+            // visuals.widgets.hovered.bg_fill = Color32::from_rgb(255, 162, 20);
+            visuals.widgets.hovered.fg_stroke.color = Color32::from_rgb(255, 255, 255);
+
+            visuals.widgets.active.rounding = Rounding::none();
+            visuals.widgets.active.bg_fill = Color32::RED;
+            visuals.widgets.active.fg_stroke.color = Color32::from_rgb(249, 230, 207);
+
             let play = egui::RichText::new("Play").size(60.0);
             if ui.button(play).clicked() {
                 commands.insert_resource(NextState(AppState::InGame));
