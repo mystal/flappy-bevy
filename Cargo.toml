@@ -20,7 +20,7 @@ bevy_egui = { version = "0.14", default-features = false }
 # TODO: Put behind a feature flag?
 bevy-inspector-egui = { version = "0.11", default-features = false, features = ["bevy_sprite", "bevy_text"] }
 # For playing sound neffects and music.
-bevy_kira_audio = { version = "0.9", default-features = false, features = ["wav"] }
+bevy_kira_audio = { version = "0.10", default-features = false, features = ["wav"] }
 # For quick, simple random number generation.
 fastrand = "1"
 # 2D physics. Mostly used for collision detection.
