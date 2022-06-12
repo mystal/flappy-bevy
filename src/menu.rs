@@ -31,7 +31,7 @@ fn setup_main_menu(
     let style = TextStyle {
         font: assets.font.clone(),
         font_size: 80.0,
-        color: Color::BLACK,
+        color: Color::WHITE,
     };
     let alignment = TextAlignment {
         horizontal: HorizontalAlign::Center,

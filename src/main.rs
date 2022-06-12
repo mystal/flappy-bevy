@@ -65,8 +65,7 @@ fn main() {
             mode: WindowMode::Windowed,
             ..default()
         })
-        // .insert_resource(ClearColor(Color::hex("018893").unwrap()))
-        .insert_resource(ClearColor(Color::rgb_u8(230, 230, 230)))
+        .insert_resource(ClearColor(Color::rgb_u8(0, 57, 109)))
 
         // External plugins
         .add_plugins(DefaultPlugins)

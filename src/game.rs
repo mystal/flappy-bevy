@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::{
-    render::camera::WindowOrigin,
+    render::{camera::WindowOrigin, mesh::VertexAttributeValues},
     sprite::Anchor,
 };
 use bevy_egui::EguiContext;
@@ -200,6 +200,9 @@ fn setup_game(
     assets: Res<GameAssets>,
     mut game_data: ResMut<GameData>,
     window_scale: Res<WindowScale>,
+    images: Res<Assets<Image>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     eprintln!("Setting up game");
 
@@ -229,17 +232,49 @@ fn setup_game(
     commands.spawn_bundle(background_sprite)
         .insert(Name::new("Background"));
 
-    // Spawn ground sprite
-    let ground_sprite = SpriteBundle {
-        transform: Transform::from_translation(Vec3::new(GAME_SIZE.0 / 2.0, GROUND_OFFSET, 10.0)),
-        sprite: Sprite {
-            color: Color::DARK_GREEN,
-            custom_size: Some(Vec2::new(GAME_SIZE.0, GROUND_OFFSET * 2.0)),
-            ..default()
-        },
+    // Spawn tiling ground texture.
+    let ground_image_size = images.get(&assets.ground).unwrap().size();
+    let mut ground_mesh = Mesh::from(shape::Quad::default());
+    if let Some(VertexAttributeValues::Float32x2(uvs)) = ground_mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
+        for uv in uvs {
+            uv[0] *= GAME_SIZE.0 / ground_image_size.x;
+            uv[1] *= (GROUND_OFFSET * 2.0) / ground_image_size.y;
+        }
+    }
+    let ground_transform = Transform {
+        translation: Vec3::new(GAME_SIZE.0 / 2.0, GROUND_OFFSET, 10.0),
+        scale: Vec3::new(GAME_SIZE.0, GROUND_OFFSET * 2.0, 1.0),
         ..default()
     };
-    commands.spawn_bundle(ground_sprite)
+    let ground_bundle = ColorMesh2dBundle {
+        transform: ground_transform,
+        material: materials.add(assets.ground.clone().into()),
+        mesh: meshes.add(ground_mesh.into()).into(),
+        ..default()
+    };
+    commands.spawn_bundle(ground_bundle)
+        .insert(Name::new("Ground"));
+
+    // Spawn tiling ground top texture.
+    let ground_image_size = images.get(&assets.ground_top).unwrap().size();
+    let mut ground_mesh = Mesh::from(shape::Quad::default());
+    if let Some(VertexAttributeValues::Float32x2(uvs)) = ground_mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
+        for uv in uvs {
+            uv[0] *= GAME_SIZE.0 / ground_image_size.x;
+        }
+    }
+    let ground_transform = Transform {
+        translation: Vec3::new(GAME_SIZE.0 / 2.0, (GROUND_OFFSET * 2.0) - (ground_image_size.y / 2.0), 10.0),
+        scale: Vec3::new(GAME_SIZE.0, ground_image_size.y, 1.0),
+        ..default()
+    };
+    let ground_bundle = ColorMesh2dBundle {
+        transform: ground_transform,
+        material: materials.add(assets.ground_top.clone().into()),
+        mesh: meshes.add(ground_mesh.into()).into(),
+        ..default()
+    };
+    commands.spawn_bundle(ground_bundle)
         .insert(Name::new("Ground"));
 
     // Spawn pipes offscreen.
