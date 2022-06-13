@@ -16,8 +16,11 @@ impl Plugin for MenuPlugin {
             .add_enter_system(AppState::MainMenu, setup_main_menu)
             .add_exit_system(AppState::MainMenu, despawn_main_menu)
             // TODO: Temp hack to work around bevy_egui not supporting touches. Remove once it does!
-            .add_system(tap_to_start.run_in_state(AppState::MainMenu))
             .add_system(main_menu_ui.run_in_state(AppState::MainMenu));
+
+        if cfg!(target_arch = "wasm32") {
+            app.add_system(tap_to_start.run_in_state(AppState::MainMenu));
+        }
     }
 }
 
@@ -55,12 +58,14 @@ fn despawn_main_menu(
 }
 
 fn tap_to_start(
+    buttons: Res<Input<MouseButton>>,
     touches: Res<Touches>,
     mut commands: Commands,
 ) {
-    // TODO: This isn't working and I don't know why!
+    let mouse_input = buttons.just_pressed(MouseButton::Left);
+    // TODO: This doesn't work cause bevy/winit don't support web touch events.
     let touch_input = touches.iter_just_pressed().count() > 0;
-    if touch_input {
+    if mouse_input || touch_input {
         commands.insert_resource(NextState(AppState::InGame));
     }
 }
