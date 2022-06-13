@@ -28,6 +28,7 @@ const PIPE_WIDTH: f32 = 32.0;
 const PIPE_SEGMENT_HEIGHT: f32 = 300.0;
 const PIPE_SPACING: f32 = 120.0;
 const PIPE_INIT_X: f32 = 200.0;
+const PIPE_Y_RAND_RANGE: f32 = 60.0;
 
 // Ground constants
 const GROUND_OFFSET: f32 = (GAME_SIZE.1 - 256.0) / 2.0;
@@ -77,6 +78,22 @@ struct TapEvent;
 struct GameData {
     score: u16,
     score_text: Option<Entity>,
+    last_pipe_y: f32,
+}
+
+impl GameData {
+    fn gen_random_pipe_y(&mut self) -> f32 {
+        const MIN: f32 = (GROUND_OFFSET * 2.0) + (PIPE_GAP * 0.75);
+        const MAX: f32 = GAME_SIZE.1 - (PIPE_GAP * 0.75);
+
+        let range_min = (self.last_pipe_y - PIPE_Y_RAND_RANGE).max(MIN);
+        let range_max = (self.last_pipe_y + PIPE_Y_RAND_RANGE).min(MAX);
+
+        let multiplier = fastrand::f32();
+        self.last_pipe_y = range_min + (range_max - range_min) * multiplier;
+        dbg!(self.last_pipe_y);
+        self.last_pipe_y
+    }
 }
 
 #[derive(Default, Component)]
@@ -277,8 +294,12 @@ fn setup_game(
     commands.spawn_bundle(ground_bundle)
         .insert(Name::new("Ground"));
 
+    // Initialize last_pipe_y in the center of the screen so we start generating new locations
+    // around it.
+    game_data.last_pipe_y = GAME_SIZE.1 / 2.0;
+
     // Spawn pipes offscreen.
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X, GAME_SIZE.1 / 2.0)))
+    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X, game_data.gen_random_pipe_y())))
         .with_children(|parent| {
             // Score detection
             parent.spawn_bundle(PipeScoreBundle::new(20.0));
@@ -289,7 +310,7 @@ fn setup_game(
             // Bottom pipe
             parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
         });
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X + PIPE_SPACING, GAME_SIZE.1 / 2.0)))
+    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X + PIPE_SPACING, game_data.gen_random_pipe_y())))
         .with_children(|parent| {
             // Score detection
             parent.spawn_bundle(PipeScoreBundle::new(20.0));
@@ -356,6 +377,7 @@ fn reset_bird(
 
 fn reset_pipes(
     app_state: Res<CurrentState<AppState>>,
+    mut game_data: ResMut<GameData>,
     mut pipe_q: Query<&mut Transform, With<Pipe>>,
 ) {
     if app_state.0 != AppState::InGame {
@@ -364,8 +386,9 @@ fn reset_pipes(
 
     eprintln!("reset_pipes");
 
+    game_data.last_pipe_y = GAME_SIZE.1 / 2.0;
     for (i, mut transform) in pipe_q.iter_mut().enumerate() {
-        transform.translation = Vec3::new(PIPE_INIT_X + (i as f32 * PIPE_SPACING), GAME_SIZE.1 / 2.0, 0.0);
+        transform.translation = Vec3::new(PIPE_INIT_X + (i as f32 * PIPE_SPACING), game_data.gen_random_pipe_y(), 0.0);
     }
 }
 
@@ -473,6 +496,7 @@ fn bird_movement(
 
 fn pipe_movement(
     time: Res<Time>,
+    mut game_data: ResMut<GameData>,
     mut pipe_q: Query<&mut Transform, With<Pipe>>,
 ) {
     for mut transform in pipe_q.iter_mut() {
@@ -481,6 +505,7 @@ fn pipe_movement(
         // If scrolled past the left end of the screen, teleport to the right side.
         if transform.translation.x < PIPE_END_X {
             transform.translation.x = PIPE_START_X;
+            transform.translation.y = game_data.gen_random_pipe_y();
         }
     }
 }
