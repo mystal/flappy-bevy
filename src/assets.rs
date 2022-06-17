@@ -65,7 +65,7 @@ fn assets_loaded(
     mut atlases: ResMut<Assets<TextureAtlas>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    eprintln!("Loaded assets!");
+    debug!("Loaded assets!");
 
     // Bird anim info asset.
     let bird_anim = SpriteSheetAnimation::from_range(0..=3, Duration::from_millis(150));

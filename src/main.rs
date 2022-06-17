@@ -2,6 +2,7 @@
 
 use benimator::AnimationPlugin;
 use bevy::prelude::*;
+use bevy::log;
 use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -55,6 +56,20 @@ fn main() {
     };
 
     let mut app = App::new();
+
+    // Configure logging.
+    if cfg!(feature = "verbose_logs") {
+        let mut log_settings = log::LogSettings::default();
+        log_settings.filter.push_str(",info,flappy_bevy=trace");
+        log_settings.level = log::Level::TRACE;
+        app.insert_resource(log_settings);
+    } else if cfg!(debug_assertions) {
+        let mut log_settings = log::LogSettings::default();
+        log_settings.filter.push_str(",info,flappy_bevy=debug");
+        log_settings.level = log::Level::DEBUG;
+        app.insert_resource(log_settings);
+    }
+
     app
         .insert_resource(WindowDescriptor {
             title: "Flappy Bevy".into(),

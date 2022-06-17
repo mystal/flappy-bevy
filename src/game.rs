@@ -91,7 +91,9 @@ impl GameData {
 
         let multiplier = fastrand::f32();
         self.last_pipe_y = range_min + (range_max - range_min) * multiplier;
-        dbg!(self.last_pipe_y);
+
+        trace!(self.last_pipe_y);
+
         self.last_pipe_y
     }
 }
@@ -221,7 +223,7 @@ fn setup_game(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    eprintln!("Setting up game");
+    debug!("Setting up game");
 
     let mut camera_bundle = OrthographicCameraBundle::new_2d();
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
@@ -357,7 +359,7 @@ fn reset_bird(
         return;
     }
 
-    eprintln!("reset_bird");
+    debug!("reset_bird");
 
     game_data.score = 0;
     if let Some(entity) = game_data.score_text {
@@ -384,7 +386,7 @@ fn reset_pipes(
         return;
     }
 
-    eprintln!("reset_pipes");
+    debug!("reset_pipes");
 
     game_data.last_pipe_y = GAME_SIZE.1 / 2.0;
     for (i, mut transform) in pipe_q.iter_mut().enumerate() {
@@ -395,7 +397,7 @@ fn reset_pipes(
 fn enter_playing(
     mut bird_q: Query<&mut Bird>,
 ) {
-    eprintln!("Enter Playing");
+    debug!("Enter Playing");
 
     for mut bird in bird_q.iter_mut() {
         bird.speed = BIRD_JUMP_SPEED;
@@ -413,7 +415,7 @@ fn exit_playing(
 }
 
 fn enter_lost() {
-    eprintln!("Enter Lost");
+    debug!("Enter Lost");
 }
 
 fn check_tap_input(

@@ -7,7 +7,8 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-phys-viz = ["heron/debug-2d"]
+phys_viz = ["heron/debug-2d"]
+verbose_logs = []
 
 [dependencies]
 # For better sprite animations.
