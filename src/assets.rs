@@ -7,9 +7,12 @@ use bevy::{
     render::render_resource::AddressMode,
 };
 use bevy_asset_loader::{AssetCollection, AssetLoader};
+use bevy_egui::{egui, EguiContext};
 use iyes_loopless::prelude::*;
 
 use crate::AppState;
+
+const FONT_KENNEY_MINI_SQUARE: &[u8] = include_bytes!("../assets/fonts/Kenney Mini Square.ttf");
 
 pub struct AssetsPlugin;
 
@@ -19,7 +22,9 @@ impl Plugin for AssetsPlugin {
             .continue_to_state(AppState::MainMenu)
             .with_collection::<GameAssets>()
             .build(app);
-        app.add_exit_system(AppState::Loading, assets_loaded);
+        app
+            .add_exit_system(AppState::Loading, finalize_bevy_assets)
+            .add_exit_system(AppState::Loading, set_egui_fonts);
     }
 }
 
@@ -59,7 +64,7 @@ pub struct TerrainAtlasIndices {
     pub ground: usize,
 }
 
-fn assets_loaded(
+fn finalize_bevy_assets(
     mut assets: ResMut<GameAssets>,
     mut animations: ResMut<Assets<SpriteSheetAnimation>>,
     mut atlases: ResMut<Assets<TextureAtlas>>,
@@ -110,4 +115,17 @@ fn assets_loaded(
         image.sampler_descriptor.address_mode_u = AddressMode::Repeat;
         image.sampler_descriptor.address_mode_v = AddressMode::Repeat;
     }
+}
+
+fn set_egui_fonts(
+    mut egui_ctx: ResMut<EguiContext>,
+) {
+    use egui::{FontData, FontDefinitions, FontFamily};
+
+    let mut font_defs = FontDefinitions::default();
+    font_defs.font_data.insert("Kenney Mini Square".to_owned(), FontData::from_static(FONT_KENNEY_MINI_SQUARE));
+    font_defs.families.entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, "Kenney Mini Square".to_owned());
+    egui_ctx.ctx_mut().set_fonts(font_defs);
 }
