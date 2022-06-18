@@ -5,12 +5,12 @@ use bevy::prelude::*;
 use bevy::log;
 use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
-use serde::{Deserialize, Serialize};
 
 mod assets;
 mod debug;
 mod game;
 mod menu;
+mod window;
 
 const GAME_SIZE: (f32, f32) = (180.0, 320.0);
 const DEFAULT_SCALE: u8 = 2;
@@ -23,37 +23,13 @@ enum AppState {
     InGame,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct SavedWindowState {
-    position: Option<Vec2>,
-    #[serde(default)]
-    scale: u8,
-}
-
-impl Default for SavedWindowState {
-    fn default() -> Self {
-        Self {
-            position: None,
-            scale: DEFAULT_SCALE,
-        }
-    }
-}
-
-pub struct WindowScale(pub u8);
-
 fn main() {
     // When building for WASM, print panics to the browser console.
     #[cfg(target_arch = "wasm32")]
     console_error_panic_hook::set_once();
 
-    // Try to load window state.
-    let window_state_filename = "window_state.toml";
-    let saved_window_state: SavedWindowState = if std::path::Path::new(window_state_filename).is_file() {
-        let window_toml_str = std::fs::read_to_string(window_state_filename).unwrap();
-        toml::from_str(&window_toml_str).unwrap()
-    } else {
-        default()
-    };
+    // TODO: Try to initialize logging before this. Maybe we can also make this code run in a plugin.
+    let saved_window_state = window::load_window_state();
 
     let mut app = App::new();
 
@@ -76,7 +52,7 @@ fn main() {
             width: GAME_SIZE.0 * saved_window_state.scale as f32,
             height: GAME_SIZE.1 * saved_window_state.scale as f32,
             resizable: false,
-            position: saved_window_state.position,
+            position: saved_window_state.position.map(|pos| pos.as_vec2()),
             mode: WindowMode::Windowed,
             ..default()
         })
@@ -86,6 +62,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy_egui::EguiPlugin)
         .insert_resource(bevy_egui::EguiSettings {
+            // TODO: Take DPI scaling into account as well.
             scale_factor: (saved_window_state.scale as f64) / (DEFAULT_SCALE as f64),
             ..default()
         })
@@ -94,12 +71,13 @@ fn main() {
         .add_plugin(AnimationPlugin::default())
 
         // App setup
-        .insert_resource(WindowScale(saved_window_state.scale))
+        .insert_resource(window::WindowScale(saved_window_state.scale))
         .add_loopless_state(AppState::Loading)
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(debug::DebugPlugin)
         .add_plugin(menu::MenuPlugin)
-        .add_plugin(game::GamePlugin);
+        .add_plugin(game::GamePlugin)
+        .add_plugin(window::WindowPlugin);
 
     if ALLOW_EXIT {
         app.add_system(bevy::input::system::exit_on_esc_system);

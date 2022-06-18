@@ -8,8 +8,9 @@ use heron::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    GAME_SIZE, AppState, WindowScale,
+    GAME_SIZE, AppState,
     assets::GameAssets,
+    window::WindowScale,
 };
 
 // Bird constants
