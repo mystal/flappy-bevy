@@ -437,6 +437,7 @@ fn check_state_transition(
     game_state: Res<CurrentState<GameState>>,
     mut tap_events: EventReader<TapEvent>,
     mut commands: Commands,
+    bird_q: Query<&Transform, With<Bird>>,
 ) {
     // Making sure we drain the events.
     if tap_events.iter().next().is_none() {
@@ -445,7 +446,14 @@ fn check_state_transition(
 
     match game_state.0 {
         GameState::Ready => commands.insert_resource(NextState(GameState::Playing)),
-        GameState::Lost => commands.insert_resource(NextState(GameState::Ready)),
+        GameState::Lost => {
+            // Make sure the bird has hit the ground before resetting.
+            if let Ok(bird_transform) = bird_q.get_single() {
+                if bird_transform.translation.y <= GROUND_OFFSET * 2.0 {
+                    commands.insert_resource(NextState(GameState::Ready));
+                }
+            }
+        }
         _ => {}
     }
 }
