@@ -10,7 +10,7 @@
 ## Graphics
 * [x] Set up animating bird
   * Try [benimator](https://github.com/jcornaz/benimator) or [bevy_sprite_animation](https://github.com/PhaestusFox/bevy_sprite_animation)
-* [ ] Draw tiling textures for art and pipes
+* [x] Draw tiling textures for ground and pipes
   * https://github.com/bevyengine/bevy/issues/399#issuecomment-1015353924
 * [ ] Spawn some little particles from the bird when it hits a pipe/the ground.
 

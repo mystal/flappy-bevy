@@ -77,11 +77,11 @@ fn assets_loaded(
         image.sampler_descriptor.address_mode_v = AddressMode::Repeat;
 
         let mut atlas = TextureAtlas::new_empty(assets.terrain_image.clone(), image.size());
-        assets.terrain_indices.pipe_top = atlas.add_texture(Rect {
+        assets.terrain_indices.pipe_bottom = atlas.add_texture(Rect {
             min: Vec2::new(0.0, 0.0),
             max: Vec2::new(32.0, 16.0),
         });
-        assets.terrain_indices.pipe_bottom = atlas.add_texture(Rect {
+        assets.terrain_indices.pipe_top = atlas.add_texture(Rect {
             min: Vec2::new(0.0, 64.0),
             max: Vec2::new(32.0, 80.0),
         });

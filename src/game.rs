@@ -24,8 +24,10 @@ const PIPE_SPEED: f32 = 80.0;
 const PIPE_START_X: f32 = 210.0;
 const PIPE_END_X: f32 = -30.0;
 const PIPE_GAP: f32 = 70.0;
-const PIPE_WIDTH: f32 = 32.0;
+const PIPE_WIDTH: f32 = 28.0;
 const PIPE_SEGMENT_HEIGHT: f32 = 300.0;
+const PIPE_ENTRANCE_WIDTH: f32 = 32.0;
+const PIPE_ENTRANCE_HEIGHT: f32 = 16.0;
 const PIPE_SPACING: f32 = 120.0;
 const PIPE_INIT_X: f32 = 200.0;
 const PIPE_Y_RAND_RANGE: f32 = 60.0;
@@ -91,6 +93,8 @@ impl GameData {
 
         let multiplier = fastrand::f32();
         self.last_pipe_y = range_min + (range_max - range_min) * multiplier;
+        // Round the position so that pipes are on integers and their sprites render properly.
+        self.last_pipe_y = self.last_pipe_y.round();
 
         trace!(self.last_pipe_y);
 
@@ -194,16 +198,16 @@ struct PipeSegmentBundle {
 }
 
 impl PipeSegmentBundle {
-    fn new(vertical_offset: f32) -> Self {
+    fn new(vertical_offset: f32, texture: Handle<Image>) -> Self {
         Self {
             segment: PipeSegment,
             sprite_bundle: SpriteBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
                 sprite: Sprite {
-                    color: Color::YELLOW_GREEN,
                     custom_size: Some(Vec2::new(PIPE_WIDTH, PIPE_SEGMENT_HEIGHT)),
                     ..default()
                 },
+                texture,
                 ..default()
             },
             collision_shape: CollisionShape::Cuboid {
@@ -212,6 +216,56 @@ impl PipeSegmentBundle {
             },
         }
     }
+}
+
+#[derive(Bundle)]
+struct PipeEntranceBundle {
+    segment: PipeSegment,
+    #[bundle]
+    sprite_sheet: SpriteSheetBundle,
+    collision_shape: CollisionShape,
+}
+
+impl PipeEntranceBundle {
+    fn new(vertical_offset: f32, sprite_index: usize, texture_atlas: Handle<TextureAtlas>) -> Self {
+        Self {
+            segment: PipeSegment,
+            sprite_sheet: SpriteSheetBundle {
+                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
+                sprite: TextureAtlasSprite {
+                    index: sprite_index,
+                    ..default()
+                },
+                texture_atlas,
+                ..default()
+            },
+            collision_shape: CollisionShape::Cuboid {
+                half_extends: Vec3::new(PIPE_ENTRANCE_WIDTH / 2.0, PIPE_ENTRANCE_HEIGHT / 2.0, 0.0),
+                border_radius: None,
+            },
+        }
+    }
+}
+
+fn spawn_pipe(
+    commands: &mut Commands,
+    assets: &GameAssets,
+    game_data: &mut GameData,
+    pipe_index: u8,
+) {
+    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X * pipe_index as f32, game_data.gen_random_pipe_y())))
+        .with_children(|parent| {
+            // Score detection
+            parent.spawn_bundle(PipeScoreBundle::new(20.0));
+
+            // Top pipe
+            parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn_bundle(PipeEntranceBundle::new((PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_top, assets.terrain_atlas.clone()));
+
+            // Bottom pipe
+            parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn_bundle(PipeEntranceBundle::new(-(PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_bottom, assets.terrain_atlas.clone()));
+        });
 }
 
 fn setup_game(
@@ -301,28 +355,8 @@ fn setup_game(
     game_data.last_pipe_y = GAME_SIZE.1 / 2.0;
 
     // Spawn pipes offscreen.
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X, game_data.gen_random_pipe_y())))
-        .with_children(|parent| {
-            // Score detection
-            parent.spawn_bundle(PipeScoreBundle::new(20.0));
-
-            // Top pipe
-            parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
-
-            // Bottom pipe
-            parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
-        });
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X + PIPE_SPACING, game_data.gen_random_pipe_y())))
-        .with_children(|parent| {
-            // Score detection
-            parent.spawn_bundle(PipeScoreBundle::new(20.0));
-
-            // Top pipe
-            parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
-
-            // Bottom pipe
-            parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0));
-        });
+    spawn_pipe(&mut commands, &assets, &mut game_data, 0);
+    spawn_pipe(&mut commands, &assets, &mut game_data, 1);
 
     // Create score text.
     let style = TextStyle {
