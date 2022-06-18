@@ -231,7 +231,7 @@ impl PipeEntranceBundle {
         Self {
             segment: PipeSegment,
             sprite_sheet: SpriteSheetBundle {
-                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
+                transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z + 1.0)),
                 sprite: TextureAtlasSprite {
                     index: sprite_index,
                     ..default()
