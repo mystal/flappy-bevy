@@ -7,6 +7,7 @@ use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
 
 mod assets;
+mod camera;
 mod debug;
 mod game;
 mod menu;
@@ -75,6 +76,7 @@ fn main() {
         .add_loopless_state(AppState::Loading)
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(debug::DebugPlugin)
+        .add_plugin(camera::CameraPlugin)
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
         .add_plugin(window::WindowPlugin);

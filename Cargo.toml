@@ -28,6 +28,8 @@ fastrand = "1"
 heron = { version = "3", features = ["2d"] }
 # For better app states.
 iyes_loopless = "0.5"
+# Noise for camera shake.
+noise = { version = "0.7", default-features = false }
 
 # For saving window state.
 serde = "1"

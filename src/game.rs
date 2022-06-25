@@ -10,6 +10,7 @@ use iyes_loopless::prelude::*;
 use crate::{
     GAME_SIZE, AppState,
     assets::GameAssets,
+    camera::CameraShake,
     window::WindowScale,
 };
 
@@ -280,12 +281,24 @@ fn setup_game(
 ) {
     debug!("Setting up game");
 
+    // Spawn an orthographic camera rooted at the bottom left parented under a transform to support
+    // camera shake.
     let mut camera_bundle = OrthographicCameraBundle::new_2d();
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
     // up and to the right.
     camera_bundle.orthographic_projection.window_origin = WindowOrigin::BottomLeft;
     camera_bundle.orthographic_projection.scale = 1.0 / window_scale.0 as f32;
-    commands.spawn_bundle(camera_bundle);
+    let camera_entity = commands.spawn_bundle(camera_bundle)
+        .insert(CameraShake {
+            max_angle: 10.0,
+            max_offset: 10.0,
+            noise_scale: 15.0,
+            ..default()
+        })
+        .id();
+    commands.spawn_bundle(TransformBundle::default())
+        .insert(Name::new("CameraParent"))
+        .add_child(camera_entity);
 
     // Spawn Bird
     commands.spawn_bundle(BirdBundle::new(Vec2::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0), assets.bird_atlas.clone()))
@@ -449,8 +462,14 @@ fn exit_playing(
     }
 }
 
-fn enter_lost() {
+fn enter_lost(
+    mut camera_q: Query<&mut CameraShake>,
+) {
     debug!("Enter Lost");
+
+    for mut shake in camera_q.iter_mut() {
+        shake.add_trauma(0.4);
+    }
 }
 
 fn check_tap_input(
