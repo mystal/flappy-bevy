@@ -2,10 +2,13 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy::{
-    sprite::Rect,
-    render::render_resource::AddressMode,
+    math::Rect,
+    render::{
+        texture::ImageSampler,
+        render_resource::{AddressMode, SamplerDescriptor},
+    },
 };
-use bevy_asset_loader::{AssetCollection, AssetLoader};
+use bevy_asset_loader::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
@@ -17,15 +20,17 @@ pub struct AssetsPlugin;
 
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
-        AssetLoader::new(AppState::Loading)
-            .continue_to_state(AppState::MainMenu)
-            .with_collection::<GameAssets>()
-            .build(app);
-        app.add_exit_system(AppState::Loading, assets_loaded);
+        app
+            .add_loading_state(
+                LoadingState::new(AppState::Loading)
+                    .continue_to_state(AppState::MainMenu)
+                    .with_collection::<GameAssets>()
+            )
+            .add_exit_system(AppState::Loading, assets_loaded);
     }
 }
 
-#[derive(AssetCollection)]
+#[derive(Resource, AssetCollection)]
 pub struct GameAssets {
     #[asset(path = "fonts/Kenney Blocks.ttf")]
     pub font: Handle<Font>,
@@ -75,8 +80,11 @@ fn assets_loaded(
 
     // Populate terrain texture atlas.
     if let Some(image) = images.get_mut(&assets.terrain_image) {
-        image.sampler_descriptor.address_mode_u = AddressMode::Repeat;
-        image.sampler_descriptor.address_mode_v = AddressMode::Repeat;
+        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
+            address_mode_u: AddressMode::Repeat,
+            address_mode_v: AddressMode::Repeat,
+            ..default()
+        });
 
         let mut atlas = TextureAtlas::new_empty(assets.terrain_image.clone(), image.size());
         assets.terrain_indices.pipe_bottom = atlas.add_texture(Rect {
@@ -105,11 +113,17 @@ fn assets_loaded(
 
     // Set repeat address mode on tiling textures.
     if let Some(image) = images.get_mut(&assets.ground) {
-        image.sampler_descriptor.address_mode_u = AddressMode::Repeat;
-        image.sampler_descriptor.address_mode_v = AddressMode::Repeat;
+        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
+            address_mode_u: AddressMode::Repeat,
+            address_mode_v: AddressMode::Repeat,
+            ..default()
+        });
     }
     if let Some(image) = images.get_mut(&assets.ground_top) {
-        image.sampler_descriptor.address_mode_u = AddressMode::Repeat;
-        image.sampler_descriptor.address_mode_v = AddressMode::Repeat;
+        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
+            address_mode_u: AddressMode::Repeat,
+            address_mode_v: AddressMode::Repeat,
+            ..default()
+        });
     }
 }

@@ -7,27 +7,26 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-phys_viz = ["heron/debug-2d"]
 verbose_logs = []
 
 [dependencies]
 # For better sprite animations.
 benimator = "4"
 # To help with loading assets.
-bevy_asset_loader = { version = "0.11", features = ["2d", "stageless"] }
+bevy_asset_loader = { version = "0.14", features = ["2d", "stageless"] }
 # For in-game and debug UI.
-bevy_egui = { version = "0.14", default-features = false }
+bevy_egui = { version = "0.17", default-features = false }
 # Generic debug UI to inspect entities and components.
 # TODO: Put behind a feature flag?
-bevy-inspector-egui = { version = "0.11", default-features = false, features = ["bevy_sprite", "bevy_text"] }
+bevy-inspector-egui = { version = "0.14", default-features = false, features = ["bevy_sprite", "bevy_text"] }
 # For playing sound neffects and music.
-bevy_kira_audio = { version = "0.10", default-features = false, features = ["wav"] }
+#bevy_kira_audio = { version = "0.13", default-features = false, features = ["wav"] }
+# 2D physics. Mostly used for collision detection.
+bevy_rapier2d = "0.19"
 # For quick, simple random number generation.
 fastrand = "1"
-# 2D physics. Mostly used for collision detection.
-heron = { version = "3", features = ["2d"] }
 # For better app states.
-iyes_loopless = "0.5"
+iyes_loopless = "0.9"
 # Noise for camera shake.
 noise = { version = "0.8", default-features = false }
 
@@ -37,16 +36,22 @@ toml = "0.5"
 
 # Base engine dependency.
 [dependencies.bevy]
-version = "0.7"
+version = "0.9"
 default-features = false
 features = [
+    # Windowing
+    "bevy_winit",
+    "x11",
+
+    # Assets
+    "bevy_asset",
+    "png",
+
+    # Rendering
     "bevy_core_pipeline",
     "bevy_render",
     "bevy_sprite",
     "bevy_text",
-    "bevy_winit",
-    "png",
-    "x11",
 ]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

@@ -17,6 +17,7 @@ impl Plugin for CameraPlugin {
     }
 }
 
+#[derive(Resource)]
 pub struct StoredNoise {
     rotation_noise: Perlin,
     offset_noise_x: Perlin,
@@ -77,7 +78,7 @@ fn update_camera_shake(
     stored_noise: Res<StoredNoise>,
     mut camera_q: Query<(&mut Transform, &mut CameraShake)>,
 ) {
-    let secs = time.seconds_since_startup();
+    let secs = time.elapsed_seconds_f64();
     let dt = time.delta_seconds();
     for (mut transform, mut shake) in camera_q.iter_mut() {
         if shake.trauma > 0.0 {

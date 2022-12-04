@@ -29,7 +29,7 @@ fn setup_main_menu(
     assets: Res<GameAssets>,
 ) {
     // 2D camera to view Title Text
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn(Camera2dBundle::default());
 
     let style = TextStyle {
         font: assets.font.clone(),
@@ -41,8 +41,9 @@ fn setup_main_menu(
         ..default()
     };
     commands
-        .spawn_bundle(Text2dBundle {
-            text: Text::with_section("Flappy\nBevy", style.clone(), alignment),
+        .spawn(Text2dBundle {
+            text: Text::from_section("Flappy\nBevy", style.clone())
+                .with_alignment(alignment),
             transform: Transform::from_translation(Vec3::new(0.0, 200.0, 0.0)),
             ..default()
         });

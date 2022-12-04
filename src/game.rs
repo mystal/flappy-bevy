@@ -4,7 +4,6 @@ use bevy::{
     sprite::Anchor,
 };
 use bevy_egui::EguiContext;
-use heron::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
@@ -79,7 +78,7 @@ enum GameState {
 #[derive(Default)]
 struct TapEvent;
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 struct GameData {
     score: u16,
     score_text: Option<Entity>,

@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use bevy::prelude::*;
-use bevy::log;
+use bevy::log::{self, LogPlugin};
 use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
 
@@ -35,17 +35,21 @@ fn main() {
     let mut app = App::new();
 
     // Configure logging.
-    if cfg!(feature = "verbose_logs") {
-        let mut log_settings = log::LogSettings::default();
-        log_settings.filter.push_str(",info,flappy_bevy=trace");
-        log_settings.level = log::Level::TRACE;
-        app.insert_resource(log_settings);
-    } else if cfg!(debug_assertions) {
-        let mut log_settings = log::LogSettings::default();
-        log_settings.filter.push_str(",info,flappy_bevy=debug");
-        log_settings.level = log::Level::DEBUG;
-        app.insert_resource(log_settings);
-    }
+    let log_plugin = {
+        let mut plugin = LogPlugin::default();
+        if cfg!(feature = "verbose_logs") {
+            plugin.filter.push_str(",info,flappy_bevy=trace");
+            plugin.level = log::Level::TRACE;
+        } else if cfg!(debug_assertions) {
+            plugin.filter.push_str(",info,flappy_bevy=debug");
+            plugin.level = log::Level::DEBUG;
+        }
+        plugin
+    };
+
+    let default_plugins = DefaultPlugins
+        .set(log_plugin)
+        .set(ImagePlugin::default_nearest());
 
     app
         .insert_resource(WindowDescriptor {
@@ -60,14 +64,13 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb_u8(0, 57, 109)))
 
         // External plugins
-        .add_plugins(DefaultPlugins)
+        .add_plugins(default_plugins)
         .add_plugin(bevy_egui::EguiPlugin)
         .insert_resource(bevy_egui::EguiSettings {
             // TODO: Take DPI scaling into account as well.
             scale_factor: (saved_window_state.scale as f64) / (DEFAULT_SCALE as f64),
             ..default()
         })
-        .add_plugin(bevy_kira_audio::AudioPlugin)
         .add_plugin(heron::PhysicsPlugin::default())
 
         // App setup
@@ -82,7 +85,7 @@ fn main() {
         .add_plugin(window::WindowPlugin);
 
     if ALLOW_EXIT {
-        app.add_system(bevy::input::system::exit_on_esc_system);
+        app.add_system(bevy::window::close_on_esc);
     }
 
     app.run();

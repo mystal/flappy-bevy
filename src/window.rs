@@ -25,6 +25,7 @@ impl Default for SavedWindowState {
     }
 }
 
+#[derive(Resource)]
 pub struct WindowScale(pub u8);
 
 pub fn load_window_state() -> SavedWindowState {
