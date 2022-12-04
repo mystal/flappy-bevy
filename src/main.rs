@@ -1,11 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use benimator::AnimationPlugin;
 use bevy::prelude::*;
 use bevy::log;
 use bevy::window::WindowMode;
 use iyes_loopless::prelude::*;
 
+mod animation;
 mod assets;
 mod camera;
 mod debug;
@@ -69,12 +69,12 @@ fn main() {
         })
         .add_plugin(bevy_kira_audio::AudioPlugin)
         .add_plugin(heron::PhysicsPlugin::default())
-        .add_plugin(AnimationPlugin::default())
 
         // App setup
         .insert_resource(window::WindowScale(saved_window_state.scale))
         .add_loopless_state(AppState::Loading)
         .add_plugin(assets::AssetsPlugin)
+        .add_plugin(animation::AnimationPlugin)
         .add_plugin(debug::DebugPlugin)
         .add_plugin(camera::CameraPlugin)
         .add_plugin(menu::MenuPlugin)

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use benimator::SpriteSheetAnimation;
 use bevy::prelude::*;
 use bevy::{
     sprite::Rect,
@@ -9,7 +8,10 @@ use bevy::{
 use bevy_asset_loader::{AssetCollection, AssetLoader};
 use iyes_loopless::prelude::*;
 
-use crate::AppState;
+use crate::{
+    AppState,
+    animation::Animation,
+};
 
 pub struct AssetsPlugin;
 
@@ -31,7 +33,7 @@ pub struct GameAssets {
     #[asset(texture_atlas(tile_size_x = 16.0, tile_size_y = 16.0, columns = 4, rows = 1))]
     #[asset(path = "sprites/Player/bird1.png")]
     pub bird_atlas: Handle<TextureAtlas>,
-    pub bird_anim: Handle<SpriteSheetAnimation>,
+    pub bird_anim: Handle<Animation>,
 
     #[asset(path = "sprites/Background/Background5.png")]
     pub background: Handle<Image>,
@@ -61,14 +63,14 @@ pub struct TerrainAtlasIndices {
 
 fn assets_loaded(
     mut assets: ResMut<GameAssets>,
-    mut animations: ResMut<Assets<SpriteSheetAnimation>>,
+    mut animations: ResMut<Assets<Animation>>,
     mut atlases: ResMut<Assets<TextureAtlas>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     debug!("Loaded assets!");
 
     // Bird anim info asset.
-    let bird_anim = SpriteSheetAnimation::from_range(0..=3, Duration::from_millis(150));
+    let bird_anim = Animation::from_indices(0..=3, Duration::from_millis(150));
     assets.bird_anim = animations.add(bird_anim);
 
     // Populate terrain texture atlas.

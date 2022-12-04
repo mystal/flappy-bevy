@@ -9,6 +9,7 @@ use iyes_loopless::prelude::*;
 
 use crate::{
     GAME_SIZE, AppState,
+    animation,
     assets::GameAssets,
     camera::CameraShake,
     window::WindowScale,
@@ -303,7 +304,8 @@ fn setup_game(
     // Spawn Bird
     commands.spawn_bundle(BirdBundle::new(Vec2::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0), assets.bird_atlas.clone()))
         .insert(assets.bird_anim.clone())
-        .insert(benimator::Play);
+        .insert(animation::AnimationState::default())
+        .insert(animation::Play);
 
     // Spawn background sprite.
     let background_sprite = SpriteBundle {
@@ -421,7 +423,7 @@ fn reset_bird(
         bird.angle = 0.0;
         transform.translation = Vec3::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0, BIRD_Z);
         transform.rotation = Quat::IDENTITY;
-        commands.entity(entity).insert(benimator::Play);
+        commands.entity(entity).insert(animation::Play);
     }
 }
 
@@ -458,7 +460,7 @@ fn exit_playing(
 ) {
     for (entity, mut bird) in bird_q.iter_mut() {
         bird.speed = 0.0;
-        commands.entity(entity).remove::<benimator::Play>();
+        commands.entity(entity).remove::<animation::Play>();
     }
 }
 
