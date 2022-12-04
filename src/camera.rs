@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::EguiContext;
-use noise::{NoiseFn, Perlin, Seedable};
+use noise::{NoiseFn, Perlin};
 
 pub struct CameraPlugin;
 
@@ -26,9 +26,9 @@ pub struct StoredNoise {
 impl Default for StoredNoise {
     fn default() -> Self {
         Self {
-            rotation_noise: Perlin::new().set_seed(fastrand::u32(..)),
-            offset_noise_x: Perlin::new().set_seed(fastrand::u32(..)),
-            offset_noise_y: Perlin::new().set_seed(fastrand::u32(..)),
+            rotation_noise: Perlin::new(fastrand::u32(..)),
+            offset_noise_x: Perlin::new(fastrand::u32(..)),
+            offset_noise_y: Perlin::new(fastrand::u32(..)),
         }
     }
 }
