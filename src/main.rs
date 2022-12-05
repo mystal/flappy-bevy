@@ -71,7 +71,7 @@ fn main() {
         .set(window_plugin);
 
     app
-        .insert_resource(ClearColor(Color::rgb_u8(0, 57, 109)))
+        .insert_resource(ClearColor(Color::rgb_linear(0.0, 57.0 / 255.0, 109.0 / 255.0)))
 
         // External plugins
         .add_plugins(default_plugins)
