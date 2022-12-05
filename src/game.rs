@@ -4,6 +4,7 @@ use bevy::{
     sprite::Anchor,
 };
 use bevy_egui::EguiContext;
+use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
@@ -117,7 +118,10 @@ struct BirdBundle {
     #[bundle]
     sprite_sheet: SpriteSheetBundle,
     rigid_body: RigidBody,
-    collision_shape: CollisionShape,
+    collision_shape: Collider,
+    sensor: Sensor,
+    active_collision_types: ActiveCollisionTypes,
+    active_events: ActiveEvents,
 }
 
 impl BirdBundle {
@@ -132,9 +136,10 @@ impl BirdBundle {
             name: Name::new("Bird"),
             sprite_sheet,
             rigid_body: RigidBody::KinematicPositionBased,
-            collision_shape: CollisionShape::Sphere {
-                radius: BIRD_RADIUS,
-            },
+            collision_shape: Collider::ball(BIRD_RADIUS),
+            sensor: Sensor,
+            active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
+            active_events: ActiveEvents::COLLISION_EVENTS,
         }
     }
 }
@@ -146,18 +151,18 @@ struct Pipe;
 struct PipeBundle {
     pipe: Pipe,
     name: Name,
-    transform: Transform,
-    global_transform: GlobalTransform,
+    #[bundle]
+    spatial: SpatialBundle,
     rigid_body: RigidBody,
 }
 
 impl PipeBundle {
     fn new(pos: Vec2) -> Self {
+        let transform = Transform::from_translation(pos.extend(0.0));
         Self {
             pipe: Pipe,
             name: Name::new("Pipe"),
-            transform: Transform::from_translation(pos.extend(0.0)),
-            global_transform: GlobalTransform::default(),
+            spatial: SpatialBundle::from_transform(transform),
             rigid_body: RigidBody::KinematicPositionBased,
         }
     }
@@ -169,21 +174,22 @@ struct PipeScoreZone;
 #[derive(Bundle)]
 struct PipeScoreBundle {
     score_zone: PipeScoreZone,
-    transform: Transform,
-    global_transform: GlobalTransform,
-    collision_shape: CollisionShape,
+    #[bundle]
+    transform: TransformBundle,
+    collision_shape: Collider,
+    sensor: Sensor,
+    active_collision_types: ActiveCollisionTypes,
 }
 
 impl PipeScoreBundle {
     fn new(horizontal_offset: f32) -> Self {
+        let transform = Transform::from_translation(Vec3::new(horizontal_offset, 0.0, 0.0));
         Self {
             score_zone: PipeScoreZone,
-            transform: Transform::from_translation(Vec3::new(horizontal_offset, 0.0, 0.0)),
-            global_transform: GlobalTransform::default(),
-            collision_shape: CollisionShape::Cuboid {
-                half_extends: Vec3::new(10.0, PIPE_GAP / 2.0, 0.0),
-                border_radius: None,
-            },
+            transform: TransformBundle::from_transform(transform),
+            collision_shape: Collider::cuboid(10.0, PIPE_GAP / 2.0),
+            sensor: Sensor,
+            active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         }
     }
 }
@@ -196,7 +202,9 @@ struct PipeSegmentBundle {
     segment: PipeSegment,
     #[bundle]
     sprite_bundle: SpriteBundle,
-    collision_shape: CollisionShape,
+    collision_shape: Collider,
+    sensor: Sensor,
+    active_collision_types: ActiveCollisionTypes,
 }
 
 impl PipeSegmentBundle {
@@ -212,10 +220,9 @@ impl PipeSegmentBundle {
                 texture,
                 ..default()
             },
-            collision_shape: CollisionShape::Cuboid {
-                half_extends: Vec3::new(PIPE_WIDTH / 2.0, PIPE_SEGMENT_HEIGHT / 2.0, 0.0),
-                border_radius: None,
-            },
+            collision_shape: Collider::cuboid(PIPE_WIDTH / 2.0, PIPE_SEGMENT_HEIGHT / 2.0),
+            sensor: Sensor,
+            active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         }
     }
 }
@@ -225,7 +232,9 @@ struct PipeEntranceBundle {
     segment: PipeSegment,
     #[bundle]
     sprite_sheet: SpriteSheetBundle,
-    collision_shape: CollisionShape,
+    collision_shape: Collider,
+    sensor: Sensor,
+    active_collision_types: ActiveCollisionTypes,
 }
 
 impl PipeEntranceBundle {
@@ -241,10 +250,9 @@ impl PipeEntranceBundle {
                 texture_atlas,
                 ..default()
             },
-            collision_shape: CollisionShape::Cuboid {
-                half_extends: Vec3::new(PIPE_ENTRANCE_WIDTH / 2.0, PIPE_ENTRANCE_HEIGHT / 2.0, 0.0),
-                border_radius: None,
-            },
+            collision_shape: Collider::cuboid(PIPE_ENTRANCE_WIDTH / 2.0, PIPE_ENTRANCE_HEIGHT / 2.0),
+            sensor: Sensor,
+            active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         }
     }
 }
@@ -255,18 +263,18 @@ fn spawn_pipe(
     game_data: &mut GameData,
     pipe_index: u8,
 ) {
-    commands.spawn_bundle(PipeBundle::new(Vec2::new(PIPE_INIT_X * pipe_index as f32, game_data.gen_random_pipe_y())))
+    commands.spawn(PipeBundle::new(Vec2::new(PIPE_INIT_X * pipe_index as f32, game_data.gen_random_pipe_y())))
         .with_children(|parent| {
             // Score detection
-            parent.spawn_bundle(PipeScoreBundle::new(20.0));
+            parent.spawn(PipeScoreBundle::new(20.0));
 
             // Top pipe
-            parent.spawn_bundle(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
-            parent.spawn_bundle(PipeEntranceBundle::new((PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_top, assets.terrain_atlas.clone()));
+            parent.spawn(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn(PipeEntranceBundle::new((PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_top, assets.terrain_atlas.clone()));
 
             // Bottom pipe
-            parent.spawn_bundle(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
-            parent.spawn_bundle(PipeEntranceBundle::new(-(PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_bottom, assets.terrain_atlas.clone()));
+            parent.spawn(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn(PipeEntranceBundle::new(-(PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_bottom, assets.terrain_atlas.clone()));
         });
 }
 
@@ -283,12 +291,12 @@ fn setup_game(
 
     // Spawn an orthographic camera rooted at the bottom left parented under a transform to support
     // camera shake.
-    let mut camera_bundle = OrthographicCameraBundle::new_2d();
+    let mut camera_bundle = Camera2dBundle::default();
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
     // up and to the right.
-    camera_bundle.orthographic_projection.window_origin = WindowOrigin::BottomLeft;
-    camera_bundle.orthographic_projection.scale = 1.0 / window_scale.0 as f32;
-    let camera_entity = commands.spawn_bundle(camera_bundle)
+    camera_bundle.projection.window_origin = WindowOrigin::BottomLeft;
+    camera_bundle.projection.scale = 1.0 / window_scale.0 as f32;
+    let camera_entity = commands.spawn(camera_bundle)
         .insert(CameraShake {
             max_angle: 10.0,
             max_offset: 10.0,
@@ -296,12 +304,12 @@ fn setup_game(
             ..default()
         })
         .id();
-    commands.spawn_bundle(TransformBundle::default())
+    commands.spawn(TransformBundle::default())
         .insert(Name::new("CameraParent"))
         .add_child(camera_entity);
 
     // Spawn Bird
-    commands.spawn_bundle(BirdBundle::new(Vec2::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0), assets.bird_atlas.clone()))
+    commands.spawn(BirdBundle::new(Vec2::new(BIRD_OFFSET_X, GAME_SIZE.1 / 2.0), assets.bird_atlas.clone()))
         .insert(assets.bird_anim.clone())
         .insert(animation::AnimationState::default())
         .insert(animation::Play);
@@ -317,7 +325,7 @@ fn setup_game(
         texture: assets.background.clone(),
         ..default()
     };
-    commands.spawn_bundle(background_sprite)
+    commands.spawn(background_sprite)
         .insert(Name::new("Background"));
 
     // Spawn tiling ground texture.
@@ -340,7 +348,7 @@ fn setup_game(
         mesh: meshes.add(ground_mesh.into()).into(),
         ..default()
     };
-    commands.spawn_bundle(ground_bundle)
+    commands.spawn(ground_bundle)
         .insert(Name::new("Ground"));
 
     // Spawn tiling ground top texture.
@@ -362,7 +370,7 @@ fn setup_game(
         mesh: meshes.add(ground_mesh.into()).into(),
         ..default()
     };
-    commands.spawn_bundle(ground_bundle)
+    commands.spawn(ground_bundle)
         .insert(Name::new("Ground"));
 
     // Initialize last_pipe_y in the center of the screen so we start generating new locations
@@ -384,8 +392,9 @@ fn setup_game(
         ..default()
     };
     let score_text_id = commands
-        .spawn_bundle(Text2dBundle {
-            text: Text::with_section("0", style.clone(), alignment),
+        .spawn(Text2dBundle {
+            text: Text::from_section("0", style.clone())
+                .with_alignment(alignment),
             transform: Transform::from_translation(Vec3::new(GAME_SIZE.0 / 2.0, 300.0, 50.0)),
             ..default()
         })
@@ -575,9 +584,30 @@ fn pipe_movement(
     }
 }
 
+fn get_rigid_body_entity(
+    entity: Entity,
+    rigid_body_q: &Query<&RigidBody>,
+    parent_q: &Query<&Parent>,
+) -> Option<Entity> {
+    if rigid_body_q.contains(entity) {
+        return Some(entity);
+    }
+
+    if let Ok(parent) = parent_q.get(entity) {
+        if rigid_body_q.contains(parent.get()) {
+            return Some(parent.get());
+        }
+    }
+
+    None
+}
+
+
 fn check_bird_scored(
     mut collisions: EventReader<CollisionEvent>,
     mut game_data: ResMut<GameData>,
+    parent_q: Query<&Parent>,
+    rigid_body_q: Query<&RigidBody>,
     bird_q: Query<(), With<Bird>>,
     pipe_score_q: Query<(), With<PipeScoreZone>>,
     mut score_text_q: Query<&mut Text>,
@@ -586,10 +616,12 @@ fn check_bird_scored(
         bird_q.contains(entity1) && pipe_score_q.contains(entity2)
     };
     for event in collisions.iter() {
-        if let CollisionEvent::Started(data1, data2) = event {
-            let entity1 = data1.collision_shape_entity();
-            let entity2 = data2.collision_shape_entity();
-            let scored = bird_entered_score_zone(entity1, entity2) || bird_entered_score_zone(entity2, entity1);
+        if let &CollisionEvent::Started(e1, e2, _flags) = event {
+            // Get rigid body entities (might be on parent entity).
+            let rbe1 = get_rigid_body_entity(e1, &rigid_body_q, &parent_q).unwrap();
+            let rbe2 = get_rigid_body_entity(e2, &rigid_body_q, &parent_q).unwrap();
+
+            let scored = bird_entered_score_zone(rbe1, rbe2) || bird_entered_score_zone(rbe2, rbe1);
             if scored {
                 game_data.score += 1;
                 if let Some(entity) = game_data.score_text {
@@ -604,6 +636,8 @@ fn check_bird_scored(
 
 fn check_bird_crashed(
     mut collisions: EventReader<CollisionEvent>,
+    parent_q: Query<&Parent>,
+    rigid_body_q: Query<&RigidBody>,
     bird_q: Query<&Transform, With<Bird>>,
     pipe_segment_q: Query<(), With<PipeSegment>>,
     mut commands: Commands,
@@ -621,10 +655,12 @@ fn check_bird_crashed(
         bird_q.contains(entity1) && pipe_segment_q.contains(entity2)
     };
     for event in collisions.iter() {
-        if let CollisionEvent::Started(data1, data2) = event {
-            let entity1 = data1.collision_shape_entity();
-            let entity2 = data2.collision_shape_entity();
-            let hit_pipe = bird_hit_pipe(entity1, entity2) || bird_hit_pipe(entity2, entity1);
+        if let &CollisionEvent::Started(e1, e2, _flags) = event {
+            // Get rigid body entities (might be on parent entity).
+            let rbe1 = get_rigid_body_entity(e1, &rigid_body_q, &parent_q).unwrap();
+            let rbe2 = get_rigid_body_entity(e2, &rigid_body_q, &parent_q).unwrap();
+
+            let hit_pipe = bird_hit_pipe(rbe1, rbe2) || bird_hit_pipe(rbe2, rbe1);
             if hit_pipe {
                 commands.insert_resource(NextState(GameState::Lost));
             }

@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use bevy::log::{self, LogPlugin};
 use bevy::window::WindowMode;
+use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 mod animation;
@@ -47,20 +48,29 @@ fn main() {
         plugin
     };
 
-    let default_plugins = DefaultPlugins
-        .set(log_plugin)
-        .set(ImagePlugin::default_nearest());
-
-    app
-        .insert_resource(WindowDescriptor {
+    // Configure window.
+    let window_position = saved_window_state.position
+        .map(|pos| WindowPosition::At(pos.as_vec2()))
+        .unwrap_or(WindowPosition::Automatic);
+    let window_plugin = WindowPlugin {
+        window: WindowDescriptor {
             title: "Flappy Bevy".into(),
             width: GAME_SIZE.0 * saved_window_state.scale as f32,
             height: GAME_SIZE.1 * saved_window_state.scale as f32,
             resizable: false,
-            position: saved_window_state.position.map(|pos| pos.as_vec2()),
+            position: window_position,
             mode: WindowMode::Windowed,
             ..default()
-        })
+        },
+        ..default()
+    };
+
+    let default_plugins = DefaultPlugins
+        .set(log_plugin)
+        .set(ImagePlugin::default_nearest())
+        .set(window_plugin);
+
+    app
         .insert_resource(ClearColor(Color::rgb_u8(0, 57, 109)))
 
         // External plugins
@@ -71,7 +81,8 @@ fn main() {
             scale_factor: (saved_window_state.scale as f64) / (DEFAULT_SCALE as f64),
             ..default()
         })
-        .add_plugin(heron::PhysicsPlugin::default())
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
+        .add_plugin(RapierDebugRenderPlugin::default().disabled())
 
         // App setup
         .insert_resource(window::WindowScale(saved_window_state.scale))
