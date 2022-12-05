@@ -28,9 +28,9 @@ const PIPE_START_X: f32 = 210.0;
 const PIPE_END_X: f32 = -30.0;
 const PIPE_GAP: f32 = 70.0;
 const PIPE_WIDTH: f32 = 28.0;
-const PIPE_SEGMENT_HEIGHT: f32 = 300.0;
-const PIPE_ENTRANCE_WIDTH: f32 = 32.0;
-const PIPE_ENTRANCE_HEIGHT: f32 = 16.0;
+const PIPE_BODY_HEIGHT: f32 = 300.0;
+const PIPE_MOUTH_WIDTH: f32 = 32.0;
+const PIPE_MOUTH_HEIGHT: f32 = 16.0;
 const PIPE_SPACING: f32 = 120.0;
 const PIPE_INIT_X: f32 = 200.0;
 const PIPE_Y_RAND_RANGE: f32 = 60.0;
@@ -195,11 +195,11 @@ impl PipeScoreBundle {
 }
 
 #[derive(Component)]
-struct PipeSegment;
+struct PipeBody;
 
 #[derive(Bundle)]
-struct PipeSegmentBundle {
-    segment: PipeSegment,
+struct PipeBodyBundle {
+    body: PipeBody,
     #[bundle]
     sprite_bundle: SpriteBundle,
     collision_shape: Collider,
@@ -207,20 +207,20 @@ struct PipeSegmentBundle {
     active_collision_types: ActiveCollisionTypes,
 }
 
-impl PipeSegmentBundle {
+impl PipeBodyBundle {
     fn new(vertical_offset: f32, texture: Handle<Image>) -> Self {
         Self {
-            segment: PipeSegment,
+            body: PipeBody,
             sprite_bundle: SpriteBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
                 sprite: Sprite {
-                    custom_size: Some(Vec2::new(PIPE_WIDTH, PIPE_SEGMENT_HEIGHT)),
+                    custom_size: Some(Vec2::new(PIPE_WIDTH, PIPE_BODY_HEIGHT)),
                     ..default()
                 },
                 texture,
                 ..default()
             },
-            collision_shape: Collider::cuboid(PIPE_WIDTH / 2.0, PIPE_SEGMENT_HEIGHT / 2.0),
+            collision_shape: Collider::cuboid(PIPE_WIDTH / 2.0, PIPE_BODY_HEIGHT / 2.0),
             sensor: Sensor,
             active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         }
@@ -228,8 +228,8 @@ impl PipeSegmentBundle {
 }
 
 #[derive(Bundle)]
-struct PipeEntranceBundle {
-    segment: PipeSegment,
+struct PipeMouthBundle {
+    body: PipeBody,
     #[bundle]
     sprite_sheet: SpriteSheetBundle,
     collision_shape: Collider,
@@ -237,10 +237,10 @@ struct PipeEntranceBundle {
     active_collision_types: ActiveCollisionTypes,
 }
 
-impl PipeEntranceBundle {
+impl PipeMouthBundle {
     fn new(vertical_offset: f32, sprite_index: usize, texture_atlas: Handle<TextureAtlas>) -> Self {
         Self {
-            segment: PipeSegment,
+            body: PipeBody,
             sprite_sheet: SpriteSheetBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z + 1.0)),
                 sprite: TextureAtlasSprite {
@@ -250,7 +250,7 @@ impl PipeEntranceBundle {
                 texture_atlas,
                 ..default()
             },
-            collision_shape: Collider::cuboid(PIPE_ENTRANCE_WIDTH / 2.0, PIPE_ENTRANCE_HEIGHT / 2.0),
+            collision_shape: Collider::cuboid(PIPE_MOUTH_WIDTH / 2.0, PIPE_MOUTH_HEIGHT / 2.0),
             sensor: Sensor,
             active_collision_types: ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         }
@@ -269,12 +269,12 @@ fn spawn_pipe(
             parent.spawn(PipeScoreBundle::new(20.0));
 
             // Top pipe
-            parent.spawn(PipeSegmentBundle::new((PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
-            parent.spawn(PipeEntranceBundle::new((PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_top, assets.terrain_atlas.clone()));
+            parent.spawn(PipeBodyBundle::new((PIPE_BODY_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn(PipeMouthBundle::new((PIPE_MOUTH_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_top, assets.terrain_atlas.clone()));
 
             // Bottom pipe
-            parent.spawn(PipeSegmentBundle::new(-(PIPE_SEGMENT_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
-            parent.spawn(PipeEntranceBundle::new(-(PIPE_ENTRANCE_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_bottom, assets.terrain_atlas.clone()));
+            parent.spawn(PipeBodyBundle::new(-(PIPE_BODY_HEIGHT + PIPE_GAP) / 2.0, assets.pipe_center.clone()));
+            parent.spawn(PipeMouthBundle::new(-(PIPE_MOUTH_HEIGHT + PIPE_GAP) / 2.0, assets.terrain_indices.pipe_bottom, assets.terrain_atlas.clone()));
         });
 }
 
@@ -639,7 +639,7 @@ fn check_bird_crashed(
     parent_q: Query<&Parent>,
     rigid_body_q: Query<&RigidBody>,
     bird_q: Query<&Transform, With<Bird>>,
-    pipe_segment_q: Query<(), With<PipeSegment>>,
+    pipe_body_q: Query<(), With<PipeBody>>,
     mut commands: Commands,
 ) {
     // Check if bird hit the ground.
@@ -652,7 +652,7 @@ fn check_bird_crashed(
 
     // Check if bird hit a pipe.
     let bird_hit_pipe = |entity1, entity2| {
-        bird_q.contains(entity1) && pipe_segment_q.contains(entity2)
+        bird_q.contains(entity1) && pipe_body_q.contains(entity2)
     };
     for event in collisions.iter() {
         if let &CollisionEvent::Started(e1, e2, _flags) = event {
