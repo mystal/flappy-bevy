@@ -174,6 +174,7 @@ struct PipeScoreZone;
 #[derive(Bundle)]
 struct PipeScoreBundle {
     score_zone: PipeScoreZone,
+    name: Name,
     #[bundle]
     transform: TransformBundle,
     collision_shape: Collider,
@@ -186,6 +187,7 @@ impl PipeScoreBundle {
         let transform = Transform::from_translation(Vec3::new(horizontal_offset, 0.0, 0.0));
         Self {
             score_zone: PipeScoreZone,
+            name: "ScoreZone".into(),
             transform: TransformBundle::from_transform(transform),
             collision_shape: Collider::cuboid(10.0, PIPE_GAP / 2.0),
             sensor: Sensor,
@@ -200,6 +202,7 @@ struct PipeBody;
 #[derive(Bundle)]
 struct PipeBodyBundle {
     body: PipeBody,
+    name: Name,
     #[bundle]
     sprite_bundle: SpriteBundle,
     collision_shape: Collider,
@@ -211,6 +214,7 @@ impl PipeBodyBundle {
     fn new(vertical_offset: f32, texture: Handle<Image>) -> Self {
         Self {
             body: PipeBody,
+            name: "PipeBody".into(),
             sprite_bundle: SpriteBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z)),
                 sprite: Sprite {
@@ -230,6 +234,7 @@ impl PipeBodyBundle {
 #[derive(Bundle)]
 struct PipeMouthBundle {
     body: PipeBody,
+    name: Name,
     #[bundle]
     sprite_sheet: SpriteSheetBundle,
     collision_shape: Collider,
@@ -241,6 +246,7 @@ impl PipeMouthBundle {
     fn new(vertical_offset: f32, sprite_index: usize, texture_atlas: Handle<TextureAtlas>) -> Self {
         Self {
             body: PipeBody,
+            name: "PipeMouth".into(),
             sprite_sheet: SpriteSheetBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, vertical_offset, PIPE_Z + 1.0)),
                 sprite: TextureAtlasSprite {
@@ -584,30 +590,9 @@ fn pipe_movement(
     }
 }
 
-fn get_rigid_body_entity(
-    entity: Entity,
-    rigid_body_q: &Query<&RigidBody>,
-    parent_q: &Query<&Parent>,
-) -> Option<Entity> {
-    if rigid_body_q.contains(entity) {
-        return Some(entity);
-    }
-
-    if let Ok(parent) = parent_q.get(entity) {
-        if rigid_body_q.contains(parent.get()) {
-            return Some(parent.get());
-        }
-    }
-
-    None
-}
-
-
 fn check_bird_scored(
     mut collisions: EventReader<CollisionEvent>,
     mut game_data: ResMut<GameData>,
-    parent_q: Query<&Parent>,
-    rigid_body_q: Query<&RigidBody>,
     bird_q: Query<(), With<Bird>>,
     pipe_score_q: Query<(), With<PipeScoreZone>>,
     mut score_text_q: Query<&mut Text>,
@@ -616,12 +601,9 @@ fn check_bird_scored(
         bird_q.contains(entity1) && pipe_score_q.contains(entity2)
     };
     for event in collisions.iter() {
-        if let &CollisionEvent::Started(e1, e2, _flags) = event {
-            // Get rigid body entities (might be on parent entity).
-            let rbe1 = get_rigid_body_entity(e1, &rigid_body_q, &parent_q).unwrap();
-            let rbe2 = get_rigid_body_entity(e2, &rigid_body_q, &parent_q).unwrap();
-
-            let scored = bird_entered_score_zone(rbe1, rbe2) || bird_entered_score_zone(rbe2, rbe1);
+        // dbg!(event);
+        if let &CollisionEvent::Started(entity1, entity2, _flags) = event {
+            let scored = bird_entered_score_zone(entity1, entity2) || bird_entered_score_zone(entity2, entity1);
             if scored {
                 game_data.score += 1;
                 if let Some(entity) = game_data.score_text {
@@ -636,8 +618,6 @@ fn check_bird_scored(
 
 fn check_bird_crashed(
     mut collisions: EventReader<CollisionEvent>,
-    parent_q: Query<&Parent>,
-    rigid_body_q: Query<&RigidBody>,
     bird_q: Query<&Transform, With<Bird>>,
     pipe_body_q: Query<(), With<PipeBody>>,
     mut commands: Commands,
@@ -655,12 +635,8 @@ fn check_bird_crashed(
         bird_q.contains(entity1) && pipe_body_q.contains(entity2)
     };
     for event in collisions.iter() {
-        if let &CollisionEvent::Started(e1, e2, _flags) = event {
-            // Get rigid body entities (might be on parent entity).
-            let rbe1 = get_rigid_body_entity(e1, &rigid_body_q, &parent_q).unwrap();
-            let rbe2 = get_rigid_body_entity(e2, &rigid_body_q, &parent_q).unwrap();
-
-            let hit_pipe = bird_hit_pipe(rbe1, rbe2) || bird_hit_pipe(rbe2, rbe1);
+        if let &CollisionEvent::Started(entity1, entity2, _flags) = event {
+            let hit_pipe = bird_hit_pipe(entity1, entity2) || bird_hit_pipe(entity2, entity1);
             if hit_pipe {
                 commands.insert_resource(NextState(GameState::Lost));
             }
