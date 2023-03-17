@@ -82,7 +82,6 @@ fn main() {
             ..default()
         })
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
-        .add_plugin(RapierDebugRenderPlugin::default().disabled())
 
         // App setup
         .insert_resource(window::WindowScale(saved_window_state.scale))
