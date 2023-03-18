@@ -3,6 +3,7 @@ use std::path::Path;
 
 use bevy::prelude::*;
 use bevy::app::AppExit;
+use bevy::window::PrimaryWindow;
 use serde::{Deserialize, Serialize};
 
 use crate::DEFAULT_SCALE;
@@ -43,14 +44,16 @@ pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(not(target_arch = "wasm32"))]
-        app.add_system_to_stage(CoreStage::PostUpdate, save_window_state_on_exit);
+        // TODO: Run this when detecting that the primary window is about to close, but before it
+        // actually does so we can grab its position.
+        app.add_system(save_window_state_on_exit.in_base_set(CoreSet::PostUpdate));
     }
 }
 
 fn save_window_state_on_exit(
     mut exit_events: EventReader<AppExit>,
-    windows: Res<Windows>,
     window_scale: Res<WindowScale>,
+    window_q: Query<&Window, With<PrimaryWindow>>,
 ) {
     // Call last to iterate over all the exit events.
     if exit_events.iter().last().is_none() {
@@ -58,10 +61,10 @@ fn save_window_state_on_exit(
         return;
     }
 
-    if let Some(window) = windows.get_primary() {
+    if let Ok(window) = window_q.get_single() {
         info!("Saving window state");
 
-        if let Some(position) = window.position() {
+        if let WindowPosition::At(position) = window.position {
             let window_state = SavedWindowState {
                 position: Some(position),
                 scale: window_scale.0,

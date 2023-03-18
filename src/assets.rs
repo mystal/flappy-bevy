@@ -9,7 +9,6 @@ use bevy::{
     },
 };
 use bevy_asset_loader::prelude::*;
-use iyes_loopless::prelude::*;
 
 use crate::{
     AppState,
@@ -24,9 +23,9 @@ impl Plugin for AssetsPlugin {
             .add_loading_state(
                 LoadingState::new(AppState::Loading)
                     .continue_to_state(AppState::MainMenu)
-                    .with_collection::<GameAssets>()
             )
-            .add_exit_system(AppState::Loading, assets_loaded);
+            .add_collection_to_loading_state::<_, GameAssets>(AppState::Loading)
+            .add_system(assets_loaded.in_schedule(OnExit(AppState::Loading)));
     }
 }
 

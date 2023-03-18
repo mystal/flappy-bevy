@@ -1,11 +1,10 @@
 use bevy::prelude::*;
 use bevy::{
-    render::{camera::WindowOrigin, mesh::VertexAttributeValues},
+    render::mesh::VertexAttributeValues,
     sprite::Anchor,
 };
-use bevy_egui::EguiContext;
+use bevy_egui::EguiContexts;
 use bevy_rapier2d::prelude::*;
-use iyes_loopless::prelude::*;
 
 use crate::{
     GAME_SIZE, AppState,
@@ -47,30 +46,36 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_loopless_state(GameState::Ready)
+            .add_state::<GameState>()
             .add_event::<TapEvent>()
             .insert_resource(GameData::default())
-            .add_enter_system(AppState::InGame, setup_game)
-            .add_enter_system(GameState::Ready, reset_bird)
-            .add_enter_system(GameState::Ready, reset_pipes)
-            .add_enter_system(GameState::Playing, enter_playing)
-            .add_exit_system(GameState::Playing, exit_playing)
-            .add_enter_system(GameState::Lost, enter_lost)
-            .add_system(check_tap_input.run_in_state(AppState::InGame).label("check_tap_input"))
-            .add_system(check_state_transition.run_in_state(AppState::InGame).run_not_in_state(GameState::Playing).after("check_tap_input"))
-            .add_system(bird_movement.run_in_state(AppState::InGame).label("bird_movement").after("check_tap_input"))
-            .add_system(pipe_movement.run_in_state(AppState::InGame).run_in_state(GameState::Playing).before("bird_movement"))
-            .add_system(check_bird_scored.run_in_state(AppState::InGame).run_in_state(GameState::Playing).after("bird_movement"))
-            .add_system(check_bird_crashed.run_in_state(AppState::InGame).run_in_state(GameState::Playing).after("bird_movement"));
+
+            // OnEnter/OnExit systems.
+            .add_system(setup_game.in_schedule(OnEnter(AppState::InGame)))
+            .add_systems((reset_bird, reset_pipes).in_schedule(OnEnter(GameState::Ready)))
+            .add_system(enter_playing.in_schedule(OnEnter(GameState::Playing)))
+            .add_system(exit_playing.in_schedule(OnExit(GameState::Playing)))
+            .add_system(enter_lost.in_schedule(OnEnter(GameState::Lost)))
+
+            // OnUpdate systems.
+            .add_systems((
+                check_tap_input,
+                check_state_transition.run_if(not(in_state(GameState::Playing))).after(check_tap_input),
+                bird_movement.after(check_tap_input),
+                pipe_movement.run_if(in_state(GameState::Playing)).before(bird_movement),
+                check_bird_scored.run_if(in_state(GameState::Playing)).after(bird_movement),
+                check_bird_crashed.run_if(in_state(GameState::Playing)).after(bird_movement),
+            ).in_set(OnUpdate(AppState::InGame)));
 
         if cfg!(debug_assertions) {
-            app.add_system(camera_control.run_in_state(AppState::InGame));
+            app.add_system(camera_control.in_set(OnUpdate(AppState::InGame)));
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
+    #[default]
     Ready,
     Playing,
     Lost,
@@ -286,6 +291,7 @@ fn spawn_pipe(
 
 fn setup_game(
     mut commands: Commands,
+    mut next_state: ResMut<NextState<GameState>>,
     assets: Res<GameAssets>,
     mut game_data: ResMut<GameData>,
     window_scale: Res<WindowScale>,
@@ -300,7 +306,7 @@ fn setup_game(
     let mut camera_bundle = Camera2dBundle::default();
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
     // up and to the right.
-    camera_bundle.projection.window_origin = WindowOrigin::BottomLeft;
+    camera_bundle.projection.viewport_origin = Vec2::ZERO;
     camera_bundle.projection.scale = 1.0 / window_scale.0 as f32;
     let camera_entity = commands.spawn(camera_bundle)
         .insert(CameraShake {
@@ -366,7 +372,7 @@ fn setup_game(
         }
     }
     let ground_transform = Transform {
-        translation: Vec3::new(GAME_SIZE.0 / 2.0, (GROUND_OFFSET * 2.0) - (ground_image_size.y / 2.0), 10.0),
+        translation: Vec3::new(GAME_SIZE.0 / 2.0, (GROUND_OFFSET * 2.0) - (ground_image_size.y / 2.0), 11.0),
         scale: Vec3::new(GAME_SIZE.0, ground_image_size.y, 1.0),
         ..default()
     };
@@ -377,7 +383,7 @@ fn setup_game(
         ..default()
     };
     commands.spawn(ground_bundle)
-        .insert(Name::new("Ground"));
+        .insert(Name::new("Grass"));
 
     // Initialize last_pipe_y in the center of the screen so we start generating new locations
     // around it.
@@ -393,10 +399,7 @@ fn setup_game(
         font_size: 30.0,
         color: Color::WHITE,
     };
-    let alignment = TextAlignment {
-        horizontal: HorizontalAlign::Center,
-        ..default()
-    };
+    let alignment = TextAlignment::Center;
     let score_text_id = commands
         .spawn(Text2dBundle {
             text: Text::from_section("0", style.clone())
@@ -409,12 +412,12 @@ fn setup_game(
     game_data.score_text = Some(score_text_id);
 
     // Make sure we're in the Ready state.
-    commands.insert_resource(NextState(GameState::Ready));
+    next_state.set(GameState::Ready);
 }
 
 fn reset_bird(
     mut commands: Commands,
-    app_state: Res<CurrentState<AppState>>,
+    app_state: Res<State<AppState>>,
     mut game_data: ResMut<GameData>,
     mut bird_q: Query<(Entity, &mut Bird, &mut Transform)>,
     mut score_text_q: Query<&mut Text>,
@@ -442,7 +445,7 @@ fn reset_bird(
 }
 
 fn reset_pipes(
-    app_state: Res<CurrentState<AppState>>,
+    app_state: Res<State<AppState>>,
     mut game_data: ResMut<GameData>,
     mut pipe_q: Query<&mut Transform, With<Pipe>>,
 ) {
@@ -492,7 +495,7 @@ fn check_tap_input(
     keys: Res<Input<KeyCode>>,
     buttons: Res<Input<MouseButton>>,
     touches: Res<Touches>,
-    mut egui_ctx: ResMut<EguiContext>,
+    mut egui_ctx: EguiContexts,
     mut tap_events: EventWriter<TapEvent>,
 ) {
     let keyboard_input = !egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space);
@@ -504,9 +507,9 @@ fn check_tap_input(
 }
 
 fn check_state_transition(
-    game_state: Res<CurrentState<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut tap_events: EventReader<TapEvent>,
-    mut commands: Commands,
     bird_q: Query<&Transform, With<Bird>>,
 ) {
     // Making sure we drain the events.
@@ -515,12 +518,12 @@ fn check_state_transition(
     }
 
     match game_state.0 {
-        GameState::Ready => commands.insert_resource(NextState(GameState::Playing)),
+        GameState::Ready => next_game_state.set(GameState::Playing),
         GameState::Lost => {
             // Make sure the bird has hit the ground before resetting.
             if let Ok(bird_transform) = bird_q.get_single() {
                 if bird_transform.translation.y <= GROUND_OFFSET * 2.0 {
-                    commands.insert_resource(NextState(GameState::Ready));
+                    next_game_state.set(GameState::Ready);
                 }
             }
         }
@@ -529,7 +532,7 @@ fn check_state_transition(
 }
 
 fn bird_movement(
-    game_state: Res<CurrentState<GameState>>,
+    game_state: Res<State<GameState>>,
     tap_events: EventReader<TapEvent>,
     time: Res<Time>,
     mut bird_q: Query<(&mut Bird, &mut Transform)>,
@@ -617,15 +620,15 @@ fn check_bird_scored(
 }
 
 fn check_bird_crashed(
+    mut next_state: ResMut<NextState<GameState>>,
     mut collisions: EventReader<CollisionEvent>,
     bird_q: Query<&Transform, With<Bird>>,
     pipe_body_q: Query<(), With<PipeBody>>,
-    mut commands: Commands,
 ) {
     // Check if bird hit the ground.
     if let Ok(transform) = bird_q.get_single() {
         if transform.translation.y <= (GROUND_OFFSET * 2.0) + BIRD_RADIUS {
-            commands.insert_resource(NextState(GameState::Lost));
+            next_state.set(GameState::Lost);
             return;
         }
     }
@@ -638,7 +641,7 @@ fn check_bird_crashed(
         if let &CollisionEvent::Started(entity1, entity2, _flags) = event {
             let hit_pipe = bird_hit_pipe(entity1, entity2) || bird_hit_pipe(entity2, entity1);
             if hit_pipe {
-                commands.insert_resource(NextState(GameState::Lost));
+                next_state.set(GameState::Lost);
             }
         }
     }
@@ -647,7 +650,7 @@ fn check_bird_crashed(
 fn camera_control(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut egui_ctx: ResMut<EguiContext>,
+    mut egui_ctx: EguiContexts,
     mut camera_q: Query<&mut Transform, With<Camera>>,
 ) {
     const CAMERA_MOVE_SPEED: f32 = 300.0;

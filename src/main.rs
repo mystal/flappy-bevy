@@ -2,9 +2,8 @@
 
 use bevy::prelude::*;
 use bevy::log::{self, LogPlugin};
-use bevy::window::WindowMode;
+use bevy::window::{WindowMode, WindowResolution};
 use bevy_rapier2d::prelude::*;
-use iyes_loopless::prelude::*;
 
 mod animation;
 mod assets;
@@ -18,8 +17,9 @@ const GAME_SIZE: (f32, f32) = (180.0, 320.0);
 const DEFAULT_SCALE: u8 = 2;
 const ALLOW_EXIT: bool = cfg!(not(target_arch = "wasm32"));
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum AppState {
+    #[default]
     Loading,
     MainMenu,
     InGame,
@@ -50,18 +50,20 @@ fn main() {
 
     // Configure window.
     let window_position = saved_window_state.position
-        .map(|pos| WindowPosition::At(pos.as_vec2()))
+        .map(|pos| WindowPosition::At(pos))
         .unwrap_or(WindowPosition::Automatic);
     let window_plugin = WindowPlugin {
-        window: WindowDescriptor {
+        primary_window: Some(Window {
             title: "Flappy Bevy".into(),
-            width: GAME_SIZE.0 * saved_window_state.scale as f32,
-            height: GAME_SIZE.1 * saved_window_state.scale as f32,
+            resolution: WindowResolution::new(
+                GAME_SIZE.0 * saved_window_state.scale as f32,
+                GAME_SIZE.1 * saved_window_state.scale as f32,
+            ),
             resizable: false,
             position: window_position,
             mode: WindowMode::Windowed,
             ..default()
-        },
+        }),
         ..default()
     };
 
@@ -85,7 +87,7 @@ fn main() {
 
         // App setup
         .insert_resource(window::WindowScale(saved_window_state.scale))
-        .add_loopless_state(AppState::Loading)
+        .add_state::<AppState>()
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(animation::AnimationPlugin)
         .add_plugin(debug::DebugPlugin)

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::EguiContext;
+use bevy_egui::EguiContexts;
 use noise::{NoiseFn, Perlin};
 
 pub struct CameraPlugin;
@@ -106,7 +106,7 @@ fn update_camera_shake(
 fn check_camera_shake_input(
     keys: Res<Input<KeyCode>>,
     mut camera_q: Query<&mut CameraShake>,
-    mut egui_ctx: ResMut<EguiContext>,
+    mut egui_ctx: EguiContexts,
 ) {
     if egui_ctx.ctx_mut().wants_keyboard_input() {
         return;

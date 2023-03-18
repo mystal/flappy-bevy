@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy::app::AppExit;
-use bevy_egui::{egui, EguiContext};
-use iyes_loopless::prelude::*;
+use bevy_egui::{egui, EguiContexts};
 
 use crate::{
     ALLOW_EXIT, AppState,
@@ -13,13 +12,13 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_enter_system(AppState::MainMenu, setup_main_menu)
-            .add_exit_system(AppState::MainMenu, despawn_main_menu)
+            .add_system(setup_main_menu.in_schedule(OnEnter(AppState::MainMenu)))
+            .add_system(despawn_main_menu.in_schedule(OnExit(AppState::MainMenu)))
             // TODO: Temp hack to work around bevy_egui not supporting touches. Remove once it does!
-            .add_system(main_menu_ui.run_in_state(AppState::MainMenu));
+            .add_system(main_menu_ui.in_set(OnUpdate(AppState::MainMenu)));
 
         if cfg!(target_arch = "wasm32") {
-            app.add_system(tap_to_start.run_in_state(AppState::MainMenu));
+            app.add_system(tap_to_start.in_set(OnUpdate(AppState::MainMenu)));
         }
     }
 }
@@ -36,10 +35,7 @@ fn setup_main_menu(
         font_size: 80.0,
         color: Color::WHITE,
     };
-    let alignment = TextAlignment {
-        horizontal: HorizontalAlign::Center,
-        ..default()
-    };
+    let alignment = TextAlignment::Center;
     commands
         .spawn(Text2dBundle {
             text: Text::from_section("Flappy\nBevy", style.clone())
@@ -61,19 +57,19 @@ fn despawn_main_menu(
 fn tap_to_start(
     buttons: Res<Input<MouseButton>>,
     touches: Res<Touches>,
-    mut commands: Commands,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     let mouse_input = buttons.just_pressed(MouseButton::Left);
     // TODO: This doesn't work cause bevy/winit don't support web touch events.
     let touch_input = touches.iter_just_pressed().count() > 0;
     if mouse_input || touch_input {
-        commands.insert_resource(NextState(AppState::InGame));
+        next_state.set(AppState::InGame);
     }
 }
 
 fn main_menu_ui(
-    mut commands: Commands,
-    mut ctx: ResMut<EguiContext>,
+    mut next_state: ResMut<NextState<AppState>>,
+    mut ctx: EguiContexts,
     mut exit: EventWriter<AppExit>,
 ) {
     let window = egui::Window::new("Main Menu")
@@ -86,7 +82,7 @@ fn main_menu_ui(
         ui.vertical_centered_justified(|ui| {
             let play = egui::RichText::new("Play").size(60.0);
             if ui.button(play).clicked() {
-                commands.insert_resource(NextState(AppState::InGame));
+                next_state.set(AppState::InGame);
             }
 
             if ALLOW_EXIT {
