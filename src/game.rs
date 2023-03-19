@@ -498,6 +498,7 @@ fn check_tap_input(
     mut egui_ctx: EguiContexts,
     mut tap_events: EventWriter<TapEvent>,
 ) {
+    // TODO: Figure out why wants_pointer_input doesn't seem to be working _at all_ now.
     let keyboard_input = !egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space);
     let mouse_input = !egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left);
     let touch_input = !egui_ctx.ctx_mut().wants_pointer_input() && touches.iter_just_pressed().count() > 0;
