@@ -11,7 +11,7 @@ use crate::{
     animation,
     assets::GameAssets,
     camera::CameraShake,
-    window::WindowScale,
+    window::WindowState,
 };
 
 // Bird constants
@@ -294,7 +294,7 @@ fn setup_game(
     mut next_state: ResMut<NextState<GameState>>,
     assets: Res<GameAssets>,
     mut game_data: ResMut<GameData>,
-    window_scale: Res<WindowScale>,
+    window_state: Res<WindowState>,
     images: Res<Assets<Image>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -307,7 +307,7 @@ fn setup_game(
     // Make the projection origin the bottom left so the camera at 0,0 will have values increasing
     // up and to the right.
     camera_bundle.projection.viewport_origin = Vec2::ZERO;
-    camera_bundle.projection.scale = 1.0 / window_scale.0 as f32;
+    camera_bundle.projection.scale = 1.0 / window_state.scale as f32;
     let camera_entity = commands.spawn(camera_bundle)
         .insert(CameraShake {
             max_angle: 10.0,

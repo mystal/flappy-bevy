@@ -30,7 +30,7 @@ noise = { version = "0.8", default-features = false }
 
 # For saving window state.
 serde = "1"
-toml = "0.7"
+ron = "0.8"
 
 # Base engine dependency.
 [dependencies.bevy]
@@ -51,6 +51,11 @@ features = [
     "bevy_sprite",
     "bevy_text",
 ]
+
+# Explicitly specify bevy_window to add serialize feature.
+[dependencies.bevy_window]
+version = "0.10"
+features = ["serialize"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Show panics in the browser console: https://bevy-cheatbook.github.io/platforms/wasm/panic-console.html

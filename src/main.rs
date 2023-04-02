@@ -49,9 +49,6 @@ fn main() {
     };
 
     // Configure window.
-    let window_position = saved_window_state.position
-        .map(|pos| WindowPosition::At(pos))
-        .unwrap_or(WindowPosition::Automatic);
     let window_plugin = WindowPlugin {
         primary_window: Some(Window {
             title: "Flappy Bevy".into(),
@@ -60,7 +57,7 @@ fn main() {
                 GAME_SIZE.1 * saved_window_state.scale as f32,
             ),
             resizable: false,
-            position: window_position,
+            position: saved_window_state.position,
             mode: WindowMode::Windowed,
             ..default()
         }),
@@ -86,15 +83,14 @@ fn main() {
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
 
         // App setup
-        .insert_resource(window::WindowScale(saved_window_state.scale))
         .add_state::<AppState>()
+        .add_plugin(window::WindowPlugin::new(saved_window_state))
         .add_plugin(assets::AssetsPlugin)
         .add_plugin(animation::AnimationPlugin)
         .add_plugin(debug::DebugPlugin)
         .add_plugin(camera::CameraPlugin)
         .add_plugin(menu::MenuPlugin)
-        .add_plugin(game::GamePlugin)
-        .add_plugin(window::WindowPlugin);
+        .add_plugin(game::GamePlugin);
 
     if ALLOW_EXIT {
         app.add_system(bevy::window::close_on_esc);
