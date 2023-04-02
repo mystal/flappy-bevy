@@ -498,10 +498,13 @@ fn check_tap_input(
     mut egui_ctx: EguiContexts,
     mut tap_events: EventWriter<TapEvent>,
 ) {
-    // TODO: Figure out why wants_pointer_input doesn't seem to be working _at all_ now.
-    let keyboard_input = !egui_ctx.ctx_mut().wants_keyboard_input() && keys.just_pressed(KeyCode::Space);
-    let mouse_input = !egui_ctx.ctx_mut().wants_pointer_input() && buttons.just_pressed(MouseButton::Left);
-    let touch_input = !egui_ctx.ctx_mut().wants_pointer_input() && touches.iter_just_pressed().count() > 0;
+    let ctx = egui_ctx.ctx_mut();
+
+    // TODO: Using is_pointer_over_area since wants_pointer_input doesn't seem to be working at all
+    // right now.
+    let keyboard_input = !ctx.wants_keyboard_input() && keys.just_pressed(KeyCode::Space);
+    let mouse_input = !ctx.is_pointer_over_area() && buttons.just_pressed(MouseButton::Left);
+    let touch_input = !ctx.is_pointer_over_area() && touches.iter_just_pressed().count() > 0;
     if keyboard_input || mouse_input || touch_input {
         tap_events.send_default();
     }

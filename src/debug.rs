@@ -12,7 +12,7 @@ impl Plugin for DebugPlugin {
             .add_plugin(RapierDebugRenderPlugin::default().disabled())
             .insert_resource(DebugUi::default())
             .add_system(debug_ui.run_if(debug_ui_enabled))
-            .add_system(toggle_world_inspector);
+            .add_system(toggle_debug_ui);
     }
 }
 
@@ -55,7 +55,7 @@ fn debug_ui(
         });
 }
 
-fn toggle_world_inspector(
+fn toggle_debug_ui(
     keys: ResMut<Input<KeyCode>>,
     mut debug_ui: ResMut<DebugUi>,
     mut egui_ctx: EguiContexts,
