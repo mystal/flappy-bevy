@@ -1,4 +1,6 @@
 /target
 /dist
 
+.vscode
+
 window_state.ron
