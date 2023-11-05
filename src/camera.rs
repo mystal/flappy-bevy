@@ -9,10 +9,10 @@ impl Plugin for CameraPlugin {
         app
             .register_type::<CameraShake>()
             .init_resource::<StoredNoise>()
-            .add_system(update_camera_shake);
+            .add_systems(Update, update_camera_shake);
 
         if cfg!(debug_assertions) {
-            app.add_system(check_camera_shake_input.before(update_camera_shake));
+            app.add_systems(Update, check_camera_shake_input.before(update_camera_shake));
         }
     }
 }

@@ -8,11 +8,11 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_plugin(WorldInspectorPlugin::default().run_if(show_world_inspector))
-            .add_plugin(RapierDebugRenderPlugin::default().disabled())
+            .add_plugins(WorldInspectorPlugin::default().run_if(show_world_inspector))
+            .add_plugins(RapierDebugRenderPlugin::default().disabled())
             .insert_resource(DebugUi::default())
-            .add_system(debug_ui.run_if(debug_ui_enabled))
-            .add_system(toggle_debug_ui);
+            .add_systems(Update, debug_ui.run_if(debug_ui_enabled))
+            .add_systems(Update, toggle_debug_ui);
     }
 }
 

@@ -51,24 +51,24 @@ impl Plugin for GamePlugin {
             .insert_resource(GameData::default())
 
             // OnEnter/OnExit systems.
-            .add_system(setup_game.in_schedule(OnEnter(AppState::InGame)))
-            .add_systems((reset_bird, reset_pipes).in_schedule(OnEnter(GameState::Ready)))
-            .add_system(enter_playing.in_schedule(OnEnter(GameState::Playing)))
-            .add_system(exit_playing.in_schedule(OnExit(GameState::Playing)))
-            .add_system(enter_lost.in_schedule(OnEnter(GameState::Lost)))
+            .add_systems(OnEnter(AppState::InGame), setup_game)
+            .add_systems(OnEnter(GameState::Ready), (reset_bird, reset_pipes))
+            .add_systems(OnEnter(GameState::Playing), enter_playing)
+            .add_systems(OnExit(GameState::Playing), exit_playing)
+            .add_systems(OnEnter(GameState::Lost), enter_lost)
 
             // OnUpdate systems.
-            .add_systems((
+            .add_systems(Update, (
                 check_tap_input,
                 check_state_transition.run_if(not(in_state(GameState::Playing))).after(check_tap_input),
                 bird_movement.after(check_tap_input),
                 pipe_movement.run_if(in_state(GameState::Playing)).before(bird_movement),
                 check_bird_scored.run_if(in_state(GameState::Playing)).after(bird_movement),
                 check_bird_crashed.run_if(in_state(GameState::Playing)).after(bird_movement),
-            ).in_set(OnUpdate(AppState::InGame)));
+            ).run_if(in_state(AppState::InGame)));
 
         if cfg!(debug_assertions) {
-            app.add_system(camera_control.in_set(OnUpdate(AppState::InGame)));
+            app.add_systems(Update, camera_control.run_if(in_state(AppState::InGame)));
         }
     }
 }
@@ -81,7 +81,7 @@ enum GameState {
     Lost,
 }
 
-#[derive(Default)]
+#[derive(Default, Event)]
 struct TapEvent;
 
 #[derive(Default, Resource)]
@@ -120,7 +120,6 @@ struct Bird {
 struct BirdBundle {
     bird: Bird,
     name: Name,
-    #[bundle]
     sprite_sheet: SpriteSheetBundle,
     rigid_body: RigidBody,
     collision_shape: Collider,
@@ -156,7 +155,6 @@ struct Pipe;
 struct PipeBundle {
     pipe: Pipe,
     name: Name,
-    #[bundle]
     spatial: SpatialBundle,
     rigid_body: RigidBody,
 }
@@ -180,7 +178,6 @@ struct PipeScoreZone;
 struct PipeScoreBundle {
     score_zone: PipeScoreZone,
     name: Name,
-    #[bundle]
     transform: TransformBundle,
     collision_shape: Collider,
     sensor: Sensor,
@@ -208,7 +205,6 @@ struct PipeBody;
 struct PipeBodyBundle {
     body: PipeBody,
     name: Name,
-    #[bundle]
     sprite_bundle: SpriteBundle,
     collision_shape: Collider,
     sensor: Sensor,
@@ -240,7 +236,6 @@ impl PipeBodyBundle {
 struct PipeMouthBundle {
     body: PipeBody,
     name: Name,
-    #[bundle]
     sprite_sheet: SpriteSheetBundle,
     collision_shape: Collider,
     sensor: Sensor,
@@ -422,7 +417,7 @@ fn reset_bird(
     mut bird_q: Query<(Entity, &mut Bird, &mut Transform)>,
     mut score_text_q: Query<&mut Text>,
 ) {
-    if app_state.0 != AppState::InGame {
+    if *app_state.get() != AppState::InGame {
         return;
     }
 
@@ -449,7 +444,7 @@ fn reset_pipes(
     mut game_data: ResMut<GameData>,
     mut pipe_q: Query<&mut Transform, With<Pipe>>,
 ) {
-    if app_state.0 != AppState::InGame {
+    if *app_state.get() != AppState::InGame {
         return;
     }
 
@@ -521,7 +516,7 @@ fn check_state_transition(
         return;
     }
 
-    match game_state.0 {
+    match game_state.get() {
         GameState::Ready => next_game_state.set(GameState::Playing),
         GameState::Lost => {
             // Make sure the bird has hit the ground before resetting.
@@ -541,13 +536,13 @@ fn bird_movement(
     time: Res<Time>,
     mut bird_q: Query<(&mut Bird, &mut Transform)>,
 ) {
-    if game_state.0 == GameState::Ready {
+    if *game_state.get() == GameState::Ready {
         return;
     }
 
     let dt = time.delta_seconds();
 
-    let jumped = game_state.0 == GameState::Playing && !tap_events.is_empty();
+    let jumped = *game_state.get() == GameState::Playing && !tap_events.is_empty();
     for (mut bird, mut transform) in bird_q.iter_mut() {
         // Update velocity.
         if jumped {

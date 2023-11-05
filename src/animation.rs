@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 
 pub struct AnimationPlugin;
 
@@ -9,11 +9,11 @@ impl Plugin for AnimationPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_asset::<Animation>()
-            .add_system(animate_sprites);
+            .add_systems(Update, animate_sprites);
     }
 }
 
-#[derive(TypeUuid, Deref)]
+#[derive(TypePath, TypeUuid, Deref)]
 #[uuid = "ae6a74db-f6fa-43c4-ac16-01d13b50e4c6"]
 pub struct Animation(benimator::Animation);
 

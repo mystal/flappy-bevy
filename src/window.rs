@@ -55,13 +55,9 @@ impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(self.saved_window_state.clone())
-            .add_system(update_window_state.in_base_set(CoreSet::PostUpdate));
+            .add_systems(PostUpdate, update_window_state);
         #[cfg(not(target_arch = "wasm32"))]
-        app.add_system(
-            save_window_state_on_exit
-                .in_base_set(CoreSet::Last)
-                .run_if(on_event::<AppExit>())
-        );
+        app.add_systems(Last, save_window_state_on_exit.run_if(on_event::<AppExit>()));
     }
 }
 

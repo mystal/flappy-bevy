@@ -13,18 +13,18 @@ verbose_logs = []
 # For better sprite animations.
 benimator = "4"
 # To help with loading assets.
-bevy_asset_loader = { version = "0.15", features = ["2d"] }
+bevy_asset_loader = { version = "0.17", features = ["2d"] }
 # For in-game and debug UI.
-bevy_egui = { version = "0.20", default-features = false }
+bevy_egui = { version = "0.22", default-features = false }
 # Generic debug UI to inspect entities and components.
 # TODO: Put behind a feature flag?
-bevy-inspector-egui = { version = "0.18", default-features = false, features = ["highlight_changes"] }
+bevy-inspector-egui = { version = "0.20", default-features = false, features = ["highlight_changes"] }
 # For playing sound effects and music.
 #bevy_kira_audio = { version = "0.13", default-features = false, features = ["wav"] }
 # 2D physics. Mostly used for collision detection.
-bevy_rapier2d = "0.21"
+bevy_rapier2d = "0.22"
 # For quick, simple random number generation.
-fastrand = "1"
+fastrand = "2"
 # Noise for camera shake.
 noise = { version = "0.8", default-features = false }
 
@@ -34,9 +34,12 @@ ron = "0.8"
 
 # Base engine dependency.
 [dependencies.bevy]
-version = "0.10"
+version = "0.11"
 default-features = false
 features = [
+    # Multi-threading
+    "multi-threaded",
+
     # Windowing
     "bevy_winit",
     "x11",
@@ -54,12 +57,13 @@ features = [
 
 # Explicitly specify bevy_window to add serialize feature.
 [dependencies.bevy_window]
-version = "0.10"
+version = "0.11"
 features = ["serialize"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Show panics in the browser console: https://bevy-cheatbook.github.io/platforms/wasm/panic-console.html
 console_error_panic_hook = "0.1"
+# TODO: Enable "webgl2" feature on bevy.
 
 # Enable only a small amount of optimization in debug mode
 [profile.dev]

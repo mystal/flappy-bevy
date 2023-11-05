@@ -74,26 +74,28 @@ fn main() {
 
         // External plugins
         .add_plugins(default_plugins)
-        .add_plugin(bevy_egui::EguiPlugin)
+        .add_plugins(bevy_egui::EguiPlugin)
         .insert_resource(bevy_egui::EguiSettings {
             // TODO: Take DPI scaling into account as well.
             scale_factor: (saved_window_state.scale as f64) / (DEFAULT_SCALE as f64),
             ..default()
         })
-        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
 
         // App setup
         .add_state::<AppState>()
-        .add_plugin(window::WindowPlugin::new(saved_window_state))
-        .add_plugin(assets::AssetsPlugin)
-        .add_plugin(animation::AnimationPlugin)
-        .add_plugin(debug::DebugPlugin)
-        .add_plugin(camera::CameraPlugin)
-        .add_plugin(menu::MenuPlugin)
-        .add_plugin(game::GamePlugin);
+        .add_plugins((
+            window::WindowPlugin::new(saved_window_state),
+            assets::AssetsPlugin,
+            animation::AnimationPlugin,
+            debug::DebugPlugin,
+            camera::CameraPlugin,
+            menu::MenuPlugin,
+            game::GamePlugin,
+        ));
 
     if ALLOW_EXIT {
-        app.add_system(bevy::window::close_on_esc);
+        app.add_systems(Update, bevy::window::close_on_esc);
     }
 
     app.run();

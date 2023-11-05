@@ -12,13 +12,13 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_system(setup_main_menu.in_schedule(OnEnter(AppState::MainMenu)))
-            .add_system(despawn_main_menu.in_schedule(OnExit(AppState::MainMenu)))
+            .add_systems(OnEnter(AppState::MainMenu), setup_main_menu)
+            .add_systems(OnExit(AppState::MainMenu), despawn_main_menu)
             // TODO: Temp hack to work around bevy_egui not supporting touches. Remove once it does!
-            .add_system(main_menu_ui.in_set(OnUpdate(AppState::MainMenu)));
+            .add_systems(Update, main_menu_ui.run_if(in_state(AppState::MainMenu)));
 
         if cfg!(target_arch = "wasm32") {
-            app.add_system(tap_to_start.in_set(OnUpdate(AppState::MainMenu)));
+            app.add_systems(Update, tap_to_start.run_if(in_state(AppState::MainMenu)));
         }
     }
 }
