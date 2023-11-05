@@ -263,13 +263,17 @@ impl PipeMouthBundle {
     }
 }
 
+fn get_pipe_init_x(pipe_index: u8) -> f32 {
+    PIPE_INIT_X + (pipe_index as f32 * PIPE_SPACING)
+}
+
 fn spawn_pipe(
     commands: &mut Commands,
     assets: &GameAssets,
     game_data: &mut GameData,
     pipe_index: u8,
 ) {
-    commands.spawn(PipeBundle::new(Vec2::new(PIPE_INIT_X * pipe_index as f32, game_data.gen_random_pipe_y())))
+    commands.spawn(PipeBundle::new(Vec2::new(get_pipe_init_x(pipe_index), game_data.gen_random_pipe_y())))
         .with_children(|parent| {
             // Score detection
             parent.spawn(PipeScoreBundle::new(20.0));
@@ -452,7 +456,7 @@ fn reset_pipes(
 
     game_data.last_pipe_y = GAME_SIZE.1 / 2.0;
     for (i, mut transform) in pipe_q.iter_mut().enumerate() {
-        transform.translation = Vec3::new(PIPE_INIT_X + (i as f32 * PIPE_SPACING), game_data.gen_random_pipe_y(), 0.0);
+        transform.translation = Vec3::new(get_pipe_init_x(i as u8), game_data.gen_random_pipe_y(), 0.0);
     }
 }
 
