@@ -8,12 +8,12 @@ pub struct AnimationPlugin;
 impl Plugin for AnimationPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_asset::<Animation>()
+            .init_asset::<Animation>()
             .add_systems(Update, animate_sprites);
     }
 }
 
-#[derive(TypePath, TypeUuid, Deref)]
+#[derive(Asset, TypePath, TypeUuid, Deref)]
 #[uuid = "ae6a74db-f6fa-43c4-ac16-01d13b50e4c6"]
 pub struct Animation(benimator::Animation);
 

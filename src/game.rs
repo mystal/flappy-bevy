@@ -344,8 +344,8 @@ fn setup_game(
     let mut ground_mesh = Mesh::from(shape::Quad::default());
     if let Some(VertexAttributeValues::Float32x2(uvs)) = ground_mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
         for uv in uvs {
-            uv[0] *= GAME_SIZE.0 / ground_image_size.x;
-            uv[1] *= (GROUND_OFFSET * 2.0) / ground_image_size.y;
+            uv[0] *= GAME_SIZE.0 / ground_image_size.x as f32;
+            uv[1] *= (GROUND_OFFSET * 2.0) / ground_image_size.y as f32;
         }
     }
     let ground_transform = Transform {
@@ -367,12 +367,12 @@ fn setup_game(
     let mut ground_mesh = Mesh::from(shape::Quad::default());
     if let Some(VertexAttributeValues::Float32x2(uvs)) = ground_mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
         for uv in uvs {
-            uv[0] *= GAME_SIZE.0 / ground_image_size.x;
+            uv[0] *= GAME_SIZE.0 / ground_image_size.x as f32;
         }
     }
     let ground_transform = Transform {
-        translation: Vec3::new(GAME_SIZE.0 / 2.0, (GROUND_OFFSET * 2.0) - (ground_image_size.y / 2.0), 11.0),
-        scale: Vec3::new(GAME_SIZE.0, ground_image_size.y, 1.0),
+        translation: Vec3::new(GAME_SIZE.0 / 2.0, (GROUND_OFFSET * 2.0) - (ground_image_size.y as f32 / 2.0), 11.0),
+        scale: Vec3::new(GAME_SIZE.0, ground_image_size.y as f32, 1.0),
         ..default()
     };
     let ground_bundle = ColorMesh2dBundle {
@@ -516,7 +516,7 @@ fn check_state_transition(
     bird_q: Query<&Transform, With<Bird>>,
 ) {
     // Making sure we drain the events.
-    if tap_events.iter().next().is_none() {
+    if tap_events.read().next().is_none() {
         return;
     }
 
@@ -606,7 +606,7 @@ fn check_bird_scored(
     let bird_entered_score_zone = |entity1, entity2| {
         bird_q.contains(entity1) && pipe_score_q.contains(entity2)
     };
-    for event in collisions.iter() {
+    for event in collisions.read() {
         // dbg!(event);
         if let &CollisionEvent::Started(entity1, entity2, _flags) = event {
             let scored = bird_entered_score_zone(entity1, entity2) || bird_entered_score_zone(entity2, entity1);
@@ -640,7 +640,7 @@ fn check_bird_crashed(
     let bird_hit_pipe = |entity1, entity2| {
         bird_q.contains(entity1) && pipe_body_q.contains(entity2)
     };
-    for event in collisions.iter() {
+    for event in collisions.read() {
         if let &CollisionEvent::Started(entity1, entity2, _flags) = event {
             let hit_pipe = bird_hit_pipe(entity1, entity2) || bird_hit_pipe(entity2, entity1);
             if hit_pipe {

@@ -3,10 +3,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy::{
     math::Rect,
-    render::{
-        texture::ImageSampler,
-        render_resource::{AddressMode, SamplerDescriptor},
-    },
+    render::texture::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor},
 };
 use bevy_asset_loader::prelude::*;
 
@@ -79,13 +76,13 @@ fn assets_loaded(
 
     // Populate terrain texture atlas.
     if let Some(image) = images.get_mut(&assets.terrain_image) {
-        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
+        image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+            address_mode_u: ImageAddressMode::Repeat,
+            address_mode_v: ImageAddressMode::Repeat,
             ..default()
         });
 
-        let mut atlas = TextureAtlas::new_empty(assets.terrain_image.clone(), image.size());
+        let mut atlas = TextureAtlas::new_empty(assets.terrain_image.clone(), image.size().as_vec2());
         assets.terrain_indices.pipe_bottom = atlas.add_texture(Rect {
             min: Vec2::new(0.0, 0.0),
             max: Vec2::new(32.0, 16.0),
@@ -112,16 +109,16 @@ fn assets_loaded(
 
     // Set repeat address mode on tiling textures.
     if let Some(image) = images.get_mut(&assets.ground) {
-        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
+        image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+            address_mode_u: ImageAddressMode::Repeat,
+            address_mode_v: ImageAddressMode::Repeat,
             ..default()
         });
     }
     if let Some(image) = images.get_mut(&assets.ground_top) {
-        image.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
+        image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+            address_mode_u: ImageAddressMode::Repeat,
+            address_mode_v: ImageAddressMode::Repeat,
             ..default()
         });
     }
