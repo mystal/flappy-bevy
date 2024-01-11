@@ -536,7 +536,7 @@ fn check_state_transition(
 
 fn bird_movement(
     game_state: Res<State<GameState>>,
-    tap_events: EventReader<TapEvent>,
+    mut tap_events: EventReader<TapEvent>,
     time: Res<Time>,
     mut bird_q: Query<(&mut Bird, &mut Transform)>,
 ) {
@@ -547,6 +547,8 @@ fn bird_movement(
     let dt = time.delta_seconds();
 
     let jumped = *game_state.get() == GameState::Playing && !tap_events.is_empty();
+    // Clear events since is_empty doesn't drain the reader.
+    tap_events.clear();
     for (mut bird, mut transform) in bird_q.iter_mut() {
         // Update velocity.
         if jumped {

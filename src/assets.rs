@@ -20,8 +20,8 @@ impl Plugin for AssetsPlugin {
             .add_loading_state(
                 LoadingState::new(AppState::Loading)
                     .continue_to_state(AppState::MainMenu)
+                    .load_collection::<GameAssets>()
             )
-            .add_collection_to_loading_state::<_, GameAssets>(AppState::Loading)
             .add_systems(OnExit(AppState::Loading), assets_loaded);
     }
 }

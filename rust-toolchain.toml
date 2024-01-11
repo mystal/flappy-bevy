@@ -1,5 +1,0 @@
-[toolchain]
-# NOTE: 1.74.0 breaks compilation for bevy-inspector-egui:
-# https://github.com/jakobhellermann/bevy-inspector-egui/issues/163
-# TODO: Update channel to 1.74.1 when it comes out.
-channel = "1.73"
