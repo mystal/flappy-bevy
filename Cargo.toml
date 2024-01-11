@@ -53,6 +53,7 @@ features = [
     "bevy_render",
     "bevy_sprite",
     "bevy_text",
+    "webgl2",
 ]
 
 # Explicitly specify bevy_window to add serialize feature.

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use bevy::prelude::*;
+use bevy::asset::AssetMetaCheck;
 use bevy::log::{self, LogPlugin};
 use bevy::window::{WindowMode, WindowResolution};
 use bevy_rapier2d::prelude::*;
@@ -71,6 +72,10 @@ fn main() {
 
     app
         .insert_resource(ClearColor(Color::rgb_linear(0.0, 57.0 / 255.0, 109.0 / 255.0)))
+
+        // Never attempts to look up meta files. The default meta configuration will be used for each asset.
+        // Required for web builds on itch so long as we're not using meta files.
+        .insert_resource(AssetMetaCheck::Never)
 
         // External plugins
         .add_plugins(default_plugins)
